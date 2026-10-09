@@ -21,6 +21,14 @@ jobs:
       - run: npm run check && npm test
         working-directory: backend/functions
       - run: node --check backend/admin/app.js
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm install
+        working-directory: backend/rules-test
+      - run: npx firebase emulators:exec --config ../firebase.test.json --project demo-vadesi --only firestore,database 'npm test'
+        working-directory: backend/rules-test
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 25

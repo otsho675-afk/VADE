@@ -11,3 +11,24 @@ if info.exists():
     data["CFBundleName"] = "vadesi"
     with info.open("wb") as stream:
         plistlib.dump(data, stream)
+
+# Current FlutterFire SDKs require iOS 15 or newer.
+project = root / "ios/Runner.xcodeproj/project.pbxproj"
+if project.exists():
+    import re
+    text = project.read_text()
+    text = re.sub(r"IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;", "IPHONEOS_DEPLOYMENT_TARGET = 15.0;", text)
+    project.write_text(text)
+framework = root / "ios/Flutter/AppFrameworkInfo.plist"
+if framework.exists():
+    with framework.open("rb") as stream:
+        data = plistlib.load(stream)
+    data["MinimumOSVersion"] = "15.0"
+    with framework.open("wb") as stream:
+        plistlib.dump(data, stream)
+podfile = root / "ios/Podfile"
+if podfile.exists():
+    text = podfile.read_text()
+    import re
+    text = re.sub(r"#?\\s*platform :ios, '[^']+'", "platform :ios, '15.0'", text)
+    podfile.write_text(text)

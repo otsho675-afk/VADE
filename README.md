@@ -79,3 +79,8 @@ Uygulama bankadan para göndermez ve kurum borçlarını otomatik sorgulamaz.
 Bildirimler Türkiye saat diliminde tam saatlere planlanır. İşletim sistemi izinleri ve pil
 yönetimi teslimatı etkileyebilir. En yakın 20 plan için en fazla 60 hatırlatma hazırlanır.
 Fatura/aboneliklerde bir sonraki dönem, önceki dönem ödendiğinde oluşturulur.
+
+
+## Firebase, Premium ve yönetim paneli
+
+İsteğe bağlı bulut hizmetleri ve mağaza kurulumu için [Kurulum ve yayın kılavuzu](docs/KURULUM_VE_YAYIN.md). Firebase/OneSignal hesabı ve mağaza anahtarları bağlanmadan bulut/ödeme hizmetleri aktif değildir. Yerel takip çalışır.

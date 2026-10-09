@@ -15,6 +15,10 @@ with ZipFile(root / "dist/VADESI.zip", "w", ZIP_DEFLATED) as archive:
             continue
         if any(part in excluded_dirs for part in rel.parts):
             continue
-        if path.name in excluded_names or path.suffix in {".jks", ".keystore", ".p12", ".mobileprovision"}:
+        if path.name in excluded_names or path.suffix in {".jks", ".keystore", ".p12", ".mobileprovision", ".p8"}:
+            continue
+        if path.name.startswith(".env") or (rel.parts[0] == "config" and not path.name.endswith(".example.json")):
+            continue
+        if str(rel) == "backend/admin/config.js" or "service-account" in path.name:
             continue
         archive.write(path, Path("VADESI") / rel)
