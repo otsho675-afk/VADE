@@ -32,3 +32,16 @@ if podfile.exists():
     import re
     text = re.sub(r"(?m)^[ \t]*#?[ \t]*platform :ios, '[^']+'", "platform :ios, '15.0'", text)
     podfile.write_text(text)
+
+# Deliver local notifications while the iOS application is foregrounded.
+delegate = root / "ios/Runner/AppDelegate.swift"
+if delegate.exists():
+    text = delegate.read_text()
+    if "import UserNotifications" not in text:
+        text = "import UserNotifications\n" + text
+    if "UNUserNotificationCenter.current().delegate" not in text:
+        marker = "return super.application("
+        if marker not in text:
+            raise RuntimeError("AppDelegate launch method changed; configure notification delegate manually.")
+        text = text.replace(marker, "UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate\n    " + marker, 1)
+    delegate.write_text(text)

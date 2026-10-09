@@ -18,9 +18,9 @@ try {
   await page.getByRole('textbox', { name: /Ödeme adı/ }).fill('Web doğrulama');
   await page.getByRole('textbox', { name: /Tutar/ }).fill('125,50');
   await page.getByRole('button', { name: 'Ödeme planını oluştur', exact: true }).click();
-  await page.getByText('Web doğrulama', { exact: true }).waitFor();
+  await page.getByRole('group', { name: /^Web doğrulama/ }).waitFor();
   await page.reload();
-  await page.getByText('Web doğrulama', { exact: true }).waitFor();
+  await page.getByRole('group', { name: /^Web doğrulama/ }).waitFor();
   await page.getByRole('button', { name: 'Ödendi', exact: true }).click();
   await page.getByText('Henüz ödeme yok', { exact: true }).waitFor();
   assert.deepEqual(errors, [], 'Unexpected browser exceptions');
