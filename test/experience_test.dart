@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -39,10 +38,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Üye ol'), findsOneWidget);
       await tester.ensureVisible(find.text('Üye ol'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Üye ol'));
       await tester.pumpAndSettle();
       expect(find.text('Birlikte başlayalım.'), findsOneWidget);
       expect(find.text('Şifre tekrar'), findsOneWidget);
+      await tester.ensureVisible(find.text('Hesabımı oluştur'));
+      await tester.pumpAndSettle();
       final submit = tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Hesabımı oluştur'));
       expect(submit.onPressed, isNull);
       expect(tester.takeException(), isNull);
@@ -60,6 +62,7 @@ void main() {
     await tester.enterText(find.byType(TextFormField).at(2), 'different');
     final button = find.widgetWithText(FilledButton, 'Hesabımı oluştur');
     await tester.ensureVisible(button);
+    await tester.pumpAndSettle();
     await tester.tap(button);
     await tester.pumpAndSettle();
     expect(find.text('Şifreler eşleşmiyor.'), findsOneWidget);

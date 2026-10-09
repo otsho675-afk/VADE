@@ -75,10 +75,10 @@ jobs:
           trap 'kill "$server_pid"' EXIT
           node scripts/web_smoke.mjs
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
-          name: Web-test-diagnostics
-          path: web-smoke-failure.png
+          name: VADESI-Interface-Previews
+          path: web-*.png
   android:
     needs: verify
     runs-on: ubuntu-latest

@@ -27,6 +27,14 @@ if (-not (Test-Path $configPath)) {
     throw 'Hesap baglantisi icin google-services.json dosyasini proje klasorune koy veya config/firebase.android.json olustur.'
   }
 }
+# Complete the public OneSignal ID in older Firebase configurations.
+$config = Get-Content $configPath -Raw | ConvertFrom-Json
+if ($config.FIREBASE_PROJECT_ID -eq 'vade-b46fb' -and
+    [string]::IsNullOrWhiteSpace($config.ONESIGNAL_APP_ID)) {
+  $config | Add-Member -NotePropertyName ONESIGNAL_APP_ID -NotePropertyValue '80af0515-e91e-4967-9e13-e95c74a85c1a' -Force
+  [System.IO.File]::WriteAllText($configPath, ($config | ConvertTo-Json -Depth 10),
+    [System.Text.UTF8Encoding]::new($false))
+}
 # Generate native projects, notification settings and branded launcher icons.
 & .\scripts\kur.ps1
 if ($Apk) {

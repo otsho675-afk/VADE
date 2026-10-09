@@ -108,10 +108,10 @@ class _AuthPageState extends State<AuthPage> {
         body: Column(children: [
           Expanded(child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 480),
             child: AutofillGroup(child: Form(key: _form,
-              child: ListView(
+              child: SingleChildScrollView(
                 keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-                children: [
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                   const Align(alignment: Alignment.centerLeft, child: BrandMark(size: 64)),
                   const SizedBox(height: 24),
                   Text(_register ? 'Birlikte başlayalım.' : 'Tekrar hoş geldin.',
@@ -187,7 +187,7 @@ class _AuthPageState extends State<AuthPage> {
                   if (CloudConfig.termsUrl.startsWith('https://'))
                     TextButton(onPressed: () => launchUrl(Uri.parse(CloudConfig.termsUrl)),
                       child: const Text('Kullanım koşulları')),
-                ],
+                ]),
               ),
             )),
           ))),

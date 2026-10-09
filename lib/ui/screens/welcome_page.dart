@@ -38,7 +38,9 @@ class _WelcomeGateState extends State<WelcomeGate> {
     if (_entered!) return HomeShell(store: widget.store);
     return Scaffold(body: SafeArea(child: Center(child: ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 600),
-      child: ListView(padding: const EdgeInsets.all(28), children: [
+      child: Column(children: [
+      Expanded(child: SingleChildScrollView(padding: const EdgeInsets.fromLTRB(28, 28, 28, 12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         const SizedBox(height: 20),
         const Align(alignment: Alignment.centerLeft, child: BrandMark(size: 76)),
         const SizedBox(height: 24),
@@ -62,7 +64,9 @@ class _WelcomeGateState extends State<WelcomeGate> {
             Text('Kaydırmalı tarih seçimi • Vade hatırlatmaları\nCihazda kayıt • İsteğe bağlı bulut yedeği',
               style: TextStyle(color: Color(0xFFE0F5E9), height: 1.7)),
           ])),
-        const SizedBox(height: 28),
+        ]))),
+        Padding(padding: const EdgeInsets.fromLTRB(28, 8, 28, 16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         FilledButton(onPressed: () => _auth(true), child: const Text('Üye ol')),
         const SizedBox(height: 10),
         OutlinedButton(onPressed: () => _auth(false), child: const Text('Giriş yap')),
@@ -71,6 +75,7 @@ class _WelcomeGateState extends State<WelcomeGate> {
         const SizedBox(height: 12),
         const Text('Yerel ödeme takibi için hesap açmak zorunda değilsin.',
           textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+        ])),
       ]),
     ))));
   }
