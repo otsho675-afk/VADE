@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path/path.dart';
 import 'database_platform.dart';
 import 'backup_codec.dart';
@@ -20,7 +21,7 @@ class LocalDatabase {
   Future<Database> _open() async {
     final selectedFactory = factory ?? platformDatabaseFactory();
     try {
-    final path = databasePath ?? join(await selectedFactory.getDatabasesPath(), 'vadesi.db');
+    final path = databasePath ?? (kIsWeb ? 'vadesi.db' : join(await selectedFactory.getDatabasesPath(), 'vadesi.db'));
     _db = await selectedFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(version: 1,
