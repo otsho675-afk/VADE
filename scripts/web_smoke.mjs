@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 
 const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--enable-unsafe-swiftshader'] });
-const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+const context = await browser.newContext({ locale: 'tr-TR', viewport: { width: 390, height: 844 } });
 const page = await context.newPage();
 page.setDefaultTimeout(60000);
 const errors = [];
@@ -11,6 +11,7 @@ page.on('console', message => { if (message.type() === 'error') console.log('CON
 page.on('requestfailed', request => console.log('REQUEST_FAILED', request.url(), request.failure()?.errorText));
 try {
   await page.goto('http://127.0.0.1:8080');
+  console.log('BROWSER_LANGUAGES', await page.evaluate(() => navigator.languages));
   await page.getByText('Ödemeleriniz tek yerde', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Yeni ödeme ekle', exact: true }).click();
   await page.getByText('Tek seferlik', { exact: true }).click();
