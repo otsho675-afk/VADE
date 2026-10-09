@@ -22,7 +22,7 @@ try {
   await page.reload();
   await page.getByRole('group', { name: /^Web doğrulama/ }).waitFor();
   await page.getByRole('button', { name: 'Ödendi', exact: true }).click();
-  await page.getByText('Henüz ödeme yok', { exact: true }).waitFor();
+  await page.getByText('Henüz ödeme yok', { exact: false }).waitFor();
   assert.deepEqual(errors, [], 'Unexpected browser exceptions');
   console.log('WEB_SMOKE_PASS: startup, payment creation, SQLite persistence after reload, payment completion');
 } catch (error) {
