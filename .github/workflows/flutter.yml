@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: flutter-${{ github.ref }}
+  group: flutter-${{ github.sha }}
   cancel-in-progress: true
 jobs:
   backend:

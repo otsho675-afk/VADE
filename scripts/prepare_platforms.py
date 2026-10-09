@@ -30,5 +30,5 @@ podfile = root / "ios/Podfile"
 if podfile.exists():
     text = podfile.read_text()
     import re
-    text = re.sub(r"#?\s*platform :ios, '[^']+'", "platform :ios, '15.0'", text)
+    text = re.sub(r"(?m)^[ \t]*#?[ \t]*platform :ios, '[^']+'", "platform :ios, '15.0'", text)
     podfile.write_text(text)
