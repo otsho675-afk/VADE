@@ -106,6 +106,8 @@ cd ..
 firebase deploy --only hosting
 ```
 
+Google Play hesap silme URL alanına Hosting alanınızdaki `/delete.html` adresini girin; bu sayfa kullanıcıyı doğrulayıp aynı hesap silme fonksiyonunu çağırır.
+
 Giriş yaptıktan sonra panel kayıtlı üye sayısını, aktif Premium sayısını, 50'şer üyeyi, çevrimiçi bağlantıları ve son 50 abonelik kaydını gösterir. Bu liste gelir muhasebesi değildir; gelir ve işlem raporu mağaza konsolundan alınır. Admin erişimi UI'ye ek olarak Firebase kuralları ve sunucuda custom claim ile korunur. Kullanıcıların finansal yedekleri admin istemcisine açılmaz.
 
 ## 5. OneSignal

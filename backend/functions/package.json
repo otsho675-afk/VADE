@@ -8,7 +8,7 @@
   "main": "index.js",
   "scripts": {
     "test": "node --test test/*.test.js",
-    "check": "node --check index.js && node --check receipts.js"
+    "check": "node --check index.js && node --check receipts.js && node -e \"import('./index.js').then(m => { if (Object.keys(m).length !== 4) process.exit(1); })\""
   },
   "dependencies": {
     "firebase-admin": "^13.0.0",

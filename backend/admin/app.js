@@ -1,6 +1,6 @@
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
 import {getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
-import {getFirestore, collection, query, orderBy, limit, startAfter, getDocs, getDoc, doc, getCountFromServer, where} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
+import {getFirestore, collection, query, orderBy, limit, startAfter, getDocs, getDoc, doc, getCountFromServer, where, Timestamp} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 import {getDatabase, ref, onValue} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js';
 import {getFunctions, httpsCallable} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-functions.js';
 const $ = id => document.getElementById(id);
@@ -45,12 +45,13 @@ if (!config?.apiKey) {
   }
   async function refresh() {
     await loadUsers();
-    const [total, premium, orders] = await Promise.all([
+    const [total, premium, orders, active] = await Promise.all([
       getCountFromServer(collection(db,'users')),
       getCountFromServer(query(collection(db,'entitlements'), where('premiumUntilMillis','>',Date.now()))),
-      getDocs(query(collection(db,'orders'), orderBy('verifiedAt','desc'), limit(50)))
+      getDocs(query(collection(db,'orders'), orderBy('verifiedAt','desc'), limit(50))),
+      getCountFromServer(query(collection(db,'users'), where('lastSeenAt','>',Timestamp.fromMillis(Date.now()-86400000))))
     ]);
-    $('counts').textContent = 'Kayıtlı üye: ' + total.data().count + ' · Aktif Premium: ' + premium.data().count;
+    $('counts').textContent = 'Kayıtlı üye: ' + total.data().count + ' · Aktif Premium: ' + premium.data().count + ' · Son 24 saatte oturum açan: ' + active.data().count;
     $('orders').replaceChildren();
     for (const order of orders.docs) {
       const data = order.data();

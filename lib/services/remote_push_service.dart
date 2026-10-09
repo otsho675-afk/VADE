@@ -27,7 +27,14 @@ class RemotePushService {
     if (!available) return false;
     if (value) {
       await _start();
-      if (!await OneSignal.Notifications.requestPermission(true)) return false;
+      if (!await OneSignal.Notifications.requestPermission(true)) {
+        await OneSignal.User.pushSubscription.optOut();
+        await OneSignal.consentGiven(false);
+        _initialized = false;
+        enabled = false;
+        await (await SharedPreferences.getInstance()).setBool('remote_push_enabled', false);
+        return false;
+      }
       await OneSignal.User.pushSubscription.optIn();
     } else if (_initialized) {
       await OneSignal.User.pushSubscription.optOut();

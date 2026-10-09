@@ -111,11 +111,11 @@ class _AccountPageState extends State<AccountPage> {
                 OutlinedButton(onPressed: _busy || !legalReady ? null : () => _run(() async {
                   await cloud.signIn(_email.text, _password.text, register: true);
                   _password.clear();
-                  if (mounted) showSuccess(context, 'Hesap oluşturuldu. Doğrulama e-postanızı kontrol edin.');
+                  if (context.mounted) showSuccess(context, 'Hesap oluşturuldu. Doğrulama e-postanızı kontrol edin.');
                 }), child: const Text('Hesap oluştur')),
                 TextButton(onPressed: _busy ? null : () => _run(() async {
                   await cloud.resetPassword(_email.text);
-                  if (mounted) showSuccess(context, 'Şifre yenileme isteği gönderildi.');
+                  if (context.mounted) showSuccess(context, 'Şifre yenileme isteği gönderildi.');
                 }), child: const Text('Şifremi unuttum')),
               ]),
               const Text('Hesap oluşturarak aşağıdaki kullanım koşullarını kabul edersiniz.'),
@@ -165,7 +165,7 @@ class _AccountPageState extends State<AccountPage> {
               value: store.remotePush.enabled,
               onChanged: _busy || !store.remotePush.available ? null : (value) => _run(() async {
                 final accepted = await store.remotePush.setEnabled(value);
-                if (!accepted && mounted) showError(context, 'Bildirim izni verilmedi.');
+                if (!accepted && context.mounted) showError(context, 'Bildirim izni verilmedi.');
               })),
             Wrap(spacing: 12, children: [
               TextButton(onPressed: CloudConfig.privacyUrl.isEmpty ? null :

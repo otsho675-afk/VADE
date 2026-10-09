@@ -14,7 +14,7 @@ try {
   console.log('BROWSER_LANGUAGES', await page.evaluate(() => navigator.languages));
   await page.getByText('Ödemeleriniz tek yerde', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Yeni ödeme ekle', exact: true }).click();
-  await page.getByText('Tek seferlik', { exact: true }).click();
+  await page.getByRole('checkbox', { name: 'Tek seferlik', exact: true }).click();
   await page.getByRole('textbox', { name: /Ödeme adı/ }).fill('Web doğrulama');
   await page.getByRole('textbox', { name: /Tutar/ }).fill('125,50');
   await page.getByRole('button', { name: 'Ödeme planını oluştur', exact: true }).click();

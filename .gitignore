@@ -25,3 +25,8 @@ backend/functions/*service-account*.json
 *.jks
 *.keystore
 .firebase/
+
+backend/rules-test/node_modules/
+**/firebase-debug.log
+**/firestore-debug.log
+**/database-debug.log

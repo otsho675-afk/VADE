@@ -20,7 +20,8 @@ jobs:
         working-directory: backend/functions
       - run: npm run check && npm test
         working-directory: backend/functions
-      - run: node --check backend/admin/app.js
+      - run: node --check backend/admin/app.js && node --check backend/admin/delete.js
+      - run: python3 -m py_compile scripts/*.py
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
