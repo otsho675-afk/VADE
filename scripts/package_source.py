@@ -4,7 +4,7 @@ from zipfile import ZipFile, ZIP_DEFLATED
 
 root = Path(__file__).resolve().parent.parent
 excluded_dirs = {".git", ".dart_tool", ".idea", ".vscode", ".gradle",
-                 "build", "dist", "Pods", ".symlinks", "ephemeral", "__pycache__"}
+                 "build", "dist", "node_modules", "Pods", ".symlinks", "ephemeral", "__pycache__"}
 excluded_names = {"local.properties", "key.properties", ".DS_Store",
                   ".flutter-plugins", ".flutter-plugins-dependencies", ".env"}
 (root / "dist").mkdir(exist_ok=True)

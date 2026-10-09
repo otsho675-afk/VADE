@@ -160,53 +160,7 @@ int? parseMoneyToCents(String raw) {
   if (input.isEmpty) return null;
   String canonical = input;
   if (canonical.contains(',') && canonical.contains('.')) {
-    if (!RegExp(r'^\d{1,3}(\.\d{3})+,\d{1,2}
-  } else if (canonical.contains(',')) {
-    canonical = canonical.replaceAll(',', '.');
-  } else if (RegExp(r'^\d{1,3}(\.\d{3})+$').hasMatch(canonical)) {
-    canonical = canonical.replaceAll('.', '');
-  }
-  if (!RegExp(r'^\d+(\.\d{1,2})?$').hasMatch(canonical)) return null;
-  final parts = canonical.split('.');
-  final whole = int.tryParse(parts[0]);
-  if (whole == null || whole > 9999999999) return null;
-  final fractional = parts.length > 1 ? int.tryParse(parts[1].padRight(2, '0')) : 0;
-  if (fractional == null) return null;
-  final cents = whole * 100 + fractional;
-  return cents > 999999999999 ? null : cents;
-}
-
-bool isValidIban(String raw) {
-  final normalized = raw.replaceAll(RegExp(r'\s+'), '').toUpperCase();
-  if (normalized.isEmpty) return true;
-  if (!RegExp(r'^TR\d{24}$').hasMatch(normalized)) return false;
-  final rotated = normalized.substring(4) + normalized.substring(0, 4);
-  final digits = StringBuffer();
-  for (final rune in rotated.runes) {
-    if (rune >= 65 && rune <= 90) {
-      digits.write(rune - 55);
-    } else {
-      digits.writeCharCode(rune);
-    }
-  }
-  int remainder = 0;
-  for (final digit in digits.toString().codeUnits) {
-    remainder = (remainder * 10 + digit - 48) % 97;
-  }
-  return remainder == 1;
-}
-
-void validateDraft(PlanDraft draft) {
-  if (draft.title.trim().isEmpty || draft.title.length > 200 ||
-      draft.party.length > 200 || draft.note.length > 5000 ||
-      !isValidIban(draft.iban) ||
-      draft.amountCents <= 0 || draft.amountCents > 999999999999 ||
-      draft.count < 1 || draft.count > 240 ||
-      draft.startDate.year < 2020 || draft.startDate.year > 2100) {
-    throw const FormatException('Ödeme bilgilerini kontrol edin.');
-  }
-}
-).hasMatch(canonical)) return null;
+    if (!RegExp(r'^\d{1,3}(\.\d{3})+,\d{1,2}$').hasMatch(canonical)) return null;
     canonical = canonical.replaceAll('.', '').replaceAll(',', '.');
   } else if (canonical.contains(',')) {
     canonical = canonical.replaceAll(',', '.');
@@ -216,7 +170,7 @@ void validateDraft(PlanDraft draft) {
   if (!RegExp(r'^\d+(\.\d{1,2})?$').hasMatch(canonical)) return null;
   final parts = canonical.split('.');
   final whole = int.tryParse(parts[0]);
-  if (whole == null) return null;
+  if (whole == null || whole > 9999999999) return null;
   final fractional = parts.length > 1 ? int.tryParse(parts[1].padRight(2, '0')) : 0;
   if (fractional == null) return null;
   final cents = whole * 100 + fractional;
