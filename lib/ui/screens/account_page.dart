@@ -4,6 +4,8 @@ import '../../state/app_store.dart';
 import '../../services/cloud_config.dart';
 import '../../services/purchase_service.dart';
 import '../widgets/common.dart';
+import '../widgets/brand_mark.dart';
+import 'auth_page.dart';
 
 class AccountPage extends StatefulWidget {
   final AppStore store;
@@ -13,8 +15,6 @@ class AccountPage extends StatefulWidget {
 }
 
 class _AccountPageState extends State<AccountPage> {
-  final _email = TextEditingController();
-  final _password = TextEditingController();
   bool _busy = false;
   AppStore get store => widget.store;
 
@@ -79,8 +79,6 @@ class _AccountPageState extends State<AccountPage> {
     if (mounted) showSuccess(context, 'Hesabınız silindi.');
   }
 
-  @override
-  void dispose() { _email.dispose(); _password.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
@@ -96,31 +94,37 @@ class _AccountPageState extends State<AccountPage> {
             if (!cloud.ready) const Card(child: Padding(padding: EdgeInsets.all(16),
               child: Text('Bulut hizmeti henüz etkinleştirilmedi. Ödemelerinizi cihazda tutmaya ve dosya yedeği almaya devam edebilirsiniz.'))),
             if (cloud.error != null) Text(cloud.error!),
-            if (cloud.ready && cloud.user == null) ...[
-              const Text('Giriş yap veya hesap oluştur'),
-              TextField(controller: _email, keyboardType: TextInputType.emailAddress,
-                autofillHints: const [AutofillHints.email],
-                decoration: const InputDecoration(labelText: 'E-posta')),
-              TextField(controller: _password, obscureText: true,
-                autofillHints: const [AutofillHints.password],
-                decoration: const InputDecoration(labelText: 'Şifre (en az 6 karakter)')),
-              const SizedBox(height: 16),
-              Wrap(spacing: 12, children: [
-                FilledButton(onPressed: _busy ? null : () => _run(() =>
-                  cloud.signIn(_email.text, _password.text)), child: const Text('Giriş yap')),
-                OutlinedButton(onPressed: _busy || !legalReady ? null : () => _run(() async {
-                  await cloud.signIn(_email.text, _password.text, register: true);
-                  _password.clear();
-                  if (context.mounted) showSuccess(context, 'Hesap oluşturuldu. Doğrulama e-postanızı kontrol edin.');
-                }), child: const Text('Hesap oluştur')),
-                TextButton(onPressed: _busy ? null : () => _run(() async {
-                  await cloud.resetPassword(_email.text);
-                  if (context.mounted) showSuccess(context, 'Şifre yenileme isteği gönderildi.');
-                }), child: const Text('Şifremi unuttum')),
-              ]),
-              const Text('Hesap oluşturarak aşağıdaki kullanım koşullarını kabul edersiniz.'),
+            if (cloud.user == null) ...[
+              const Center(child: BrandMark(size: 72)),
+              const SizedBox(height: 18),
+              Text('Hesabın, her zaman yanında.', textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineSmall),
+              const SizedBox(height: 10),
+              const Text('Giriş yap veya yeni hesap oluştur. Yerel kayıtların bu cihazda korunur.',
+                textAlign: TextAlign.center),
+              const SizedBox(height: 22),
+              FilledButton(onPressed: () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => AuthPage(store: store))), child: const Text('Giriş yap')),
+              const SizedBox(height: 10),
+              OutlinedButton(onPressed: () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => AuthPage(store: store, register: true))), child: const Text('Üye ol')),
+              const SizedBox(height: 20),
             ],
             if (cloud.user != null) ...[
+              if (!cloud.user!.emailVerified) Card(child: Padding(
+                padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('E-posta adresini doğrula', style: TextStyle(fontWeight: FontWeight.w700)),
+                  const Text('Gelen kutundaki doğrulama bağlantısını aç.'),
+                  Wrap(spacing: 8, children: [
+                    TextButton(onPressed: _busy ? null : () => _run(() async {
+                      await cloud.resendVerification();
+                      if (context.mounted) showSuccess(context, 'Doğrulama e-postası gönderildi.');
+                    }), child: const Text('Tekrar gönder')),
+                    TextButton(onPressed: _busy ? null : () => _run(cloud.refreshUser),
+                      child: const Text('Doğrulamayı kontrol et')),
+                  ]),
+                ]))),
+
               ListTile(contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.account_circle),
                 title: Text(cloud.user!.email ?? 'Hesabım'),

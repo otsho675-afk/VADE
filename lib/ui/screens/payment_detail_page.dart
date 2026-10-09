@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../models/payment.dart';
 import '../../state/app_store.dart';
 import '../widgets/common.dart';
+import '../widgets/wheel_date_picker.dart';
 import 'payment_form_page.dart';
 
 class PaymentDetailPage extends StatelessWidget {
@@ -34,7 +35,7 @@ class PaymentDetailPage extends StatelessWidget {
   }
 
   Future<void> _editDate(BuildContext context, DueItem item) async {
-    final choice = await showDatePicker(
+    final choice = await showWheelDatePicker(
       context: context,
       firstDate: DateTime(2020), lastDate: DateTime(2120, 12, 31),
       initialDate: item.dueDate,

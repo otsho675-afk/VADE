@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/payment.dart';
 import '../../state/app_store.dart';
 import '../widgets/common.dart';
+import '../widgets/wheel_date_picker.dart';
 import 'payment_detail_page.dart';
 
 class CalendarPage extends StatefulWidget {
@@ -31,7 +32,16 @@ class _CalendarPageState extends State<CalendarPage> {
         body: Center(child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 760),
           child: ListView(padding: const EdgeInsets.all(18), children: [
+            OutlinedButton.icon(
+              onPressed: () async {
+                final date = await showWheelDatePicker(context: context, initialDate: _selected,
+                  firstDate: DateTime(2020), lastDate: DateTime(2120, 12, 31));
+                if (date != null && mounted) setState(() { _selected = date; _month = date; });
+              },
+              icon: const Icon(Icons.unfold_more_rounded), label: const Text('Kaydırarak tarih seç')),
+            const SizedBox(height: 12),
             Card(child: CalendarDatePicker(
+              key: ValueKey(_selected),
               initialDate: _selected, firstDate: DateTime(2020), lastDate: DateTime(2120, 12, 31),
               onDateChanged: (value) => setState(() => _selected = value),
               onDisplayedMonthChanged: (value) => setState(() => _month = value),

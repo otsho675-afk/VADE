@@ -8,7 +8,7 @@ class CloudConfig {
   static const senderId = String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID');
   static const databaseUrl = String.fromEnvironment('FIREBASE_DATABASE_URL');
   static const region = String.fromEnvironment('FIREBASE_FUNCTIONS_REGION', defaultValue: 'europe-west1');
-  static const oneSignalAppId = String.fromEnvironment('ONESIGNAL_APP_ID');
+  static const oneSignalAppId = String.fromEnvironment('ONESIGNAL_APP_ID', defaultValue: '80af0515-e91e-4967-9e13-e95c74a85c1a');
   static const privacyUrl = String.fromEnvironment('PRIVACY_POLICY_URL');
   static const termsUrl = String.fromEnvironment('TERMS_URL');
   static String get appId => kIsWeb

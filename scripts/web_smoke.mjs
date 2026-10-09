@@ -12,6 +12,7 @@ page.on('requestfailed', request => console.log('REQUEST_FAILED', request.url(),
 try {
   await page.goto('http://127.0.0.1:8080');
   console.log('BROWSER_LANGUAGES', await page.evaluate(() => navigator.languages));
+  await page.getByRole('button', { name: 'Misafir olarak devam et', exact: true }).click();
   await page.getByText('Ödemeleriniz tek yerde', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Yeni ödeme ekle', exact: true }).click();
   await page.getByRole('checkbox', { name: 'Tek seferlik', exact: true }).click();

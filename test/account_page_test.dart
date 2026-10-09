@@ -10,9 +10,10 @@ void main() {
     await tester.pump();
     expect(find.textContaining('Bulut hizmeti henüz etkinleştirilmedi'), findsOneWidget);
     expect(find.text('Abone ol'), findsNothing);
-    expect(find.text('Hesap oluştur'), findsNothing);
+    expect(find.text('Giriş yap'), findsOneWidget);
+    expect(find.text('Üye ol'), findsOneWidget);
     final toggle = tester.widget<SwitchListTile>(find.byType(SwitchListTile));
-    expect(toggle.onChanged, isNull);
+    expect(toggle.value, isFalse);
     await tester.pumpWidget(const SizedBox.shrink());
     store.dispose();
   });

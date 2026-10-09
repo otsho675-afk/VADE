@@ -45,6 +45,7 @@ jobs:
       - name: Resolved dependency lock
         run: cat pubspec.lock
       - run: dart run sqflite_common_ffi_web:setup
+      - run: dart run flutter_launcher_icons -f web_icons.yaml
       - run: flutter analyze --no-fatal-infos
       - run: flutter test
       - run: flutter build web --release --no-web-resources-cdn

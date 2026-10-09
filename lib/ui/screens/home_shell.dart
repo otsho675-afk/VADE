@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'account_page.dart';
+import 'auth_page.dart';
+import '../widgets/brand_mark.dart';
+import '../widgets/wheel_date_picker.dart';
 import '../../models/payment.dart';
 import '../../state/app_store.dart';
 import '../widgets/common.dart';
@@ -76,7 +79,7 @@ class _HomeShellState extends State<HomeShell> {
     final width = MediaQuery.sizeOf(context).width;
     final desktop = width >= 960;
     final extended = width >= 1240;
-    return AnimatedBuilder(animation: store, builder: (context, _) {
+    return AnimatedBuilder(animation: Listenable.merge([store, store.cloud]), builder: (context, _) {
       if (store.loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
       if (store.error != null) { return Scaffold(body: SafeArea(child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -97,10 +100,10 @@ class _HomeShellState extends State<HomeShell> {
               leading: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 19, 12, 34),
                 child: extended ? Row(mainAxisSize: MainAxisSize.min, children: [
-                  ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.asset('assets/images/vadesi_mark.png', width: 30, height: 30)),
+                  const BrandMark(size: 36),
                   const SizedBox(width: 10),
                   const Text('VADESİ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: .8)),
-                ]) : ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.asset('assets/images/vadesi_mark.png', width: 30, height: 30)),
+                ]) : const BrandMark(size: 36),
               ),
               destinations: const [
                 NavigationRailDestination(icon: Icon(Icons.grid_view_outlined),
@@ -125,12 +128,16 @@ class _HomeShellState extends State<HomeShell> {
                   Container(padding: const EdgeInsets.all(7), decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primary.withValues(alpha: .09),
                     borderRadius: BorderRadius.circular(10)),
-                    child: ClipRRect(borderRadius: BorderRadius.circular(7), child: Image.asset('assets/images/vadesi_mark.png', width: 25, height: 25))),
+                    child: const BrandMark(size: 30)),
                   const SizedBox(width: 9),
                   Text('VADESİ', style: Theme.of(context).textTheme.titleLarge?.copyWith(letterSpacing: .8)),
                 ] else Text(['Genel bakış', 'Ödemeler', 'Raporlar', 'Ayarlar'][_selected],
                   style: Theme.of(context).textTheme.headlineSmall),
                 const Spacer(),
+                IconButton(tooltip: store.cloud.user == null ? 'Giriş yap / Üye ol' : 'Hesabım',
+                  icon: const Icon(Icons.person_outline_rounded),
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => AccountPage(store: store)))),
                 IconButton(tooltip: 'Ödeme takvimi', icon: const Icon(Icons.calendar_month_outlined),
                   onPressed: () => Navigator.push(context, MaterialPageRoute(
                     builder: (_) => CalendarPage(store: store)))),
@@ -181,21 +188,66 @@ class _HomeShellState extends State<HomeShell> {
     Text('Taksit, fatura ve alacaklarınızı zamanında takip edin.',
       style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
     const SizedBox(height: 22),
+    Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
+          colors: [Color(0xFF104C46), Color(0xFF237C65)]),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [BoxShadow(color: const Color(0xFF104C46).withValues(alpha: .18),
+          blurRadius: 24, offset: const Offset(0, 10))],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Expanded(child: Text('BU AYA KADAR ÖDENECEK',
+            style: TextStyle(color: Color(0xFFD8F4E4), fontSize: 11, letterSpacing: 1.4, fontWeight: FontWeight.w600))),
+          const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFFD8F4E4)),
+        ]),
+        const SizedBox(height: 14),
+        FittedBox(fit: BoxFit.scaleDown, child: Text(formatCompactMoney(store.monthOutgoing),
+          style: const TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w800, letterSpacing: -1))),
+        const SizedBox(height: 8),
+        const Text('Vadesi gelen ve gecikmiş borçların toplamı',
+          style: TextStyle(color: Color(0xFFD8F4E4), fontSize: 12)),
+        const SizedBox(height: 20),
+        Wrap(spacing: 12, runSpacing: 10, children: [
+          FilledButton.icon(style: FilledButton.styleFrom(backgroundColor: const Color(0xFFD7F7B4),
+              foregroundColor: const Color(0xFF173F32)),
+            onPressed: _openAdd, icon: const Icon(Icons.add_rounded), label: const Text('Ödeme ekle')),
+          TextButton.icon(style: TextButton.styleFrom(foregroundColor: Colors.white),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CalendarPage(store: store))),
+            icon: const Icon(Icons.calendar_month_outlined), label: const Text('Takvimim')),
+        ]),
+      ]),
+    ),
+    const SizedBox(height: 16),
     LayoutBuilder(builder: (context, constraints) {
-      final columns = constraints.maxWidth >= 740 ? 3 : constraints.maxWidth >= 420 ? 2 : 1;
-      const gap = 12.0;
-      final w = (constraints.maxWidth - (columns - 1) * gap) / columns;
-      final cards = [
-        SummaryTile(title: 'Bu aya kadar ödenecek', value: formatCompactMoney(store.monthOutgoing),
-          footer: 'Vadesi gelen ve gecikmiş borçlar', icon: Icons.account_balance_wallet_outlined),
-        SummaryTile(title: 'Beklenen tahsilat', value: formatCompactMoney(store.monthIncoming),
-          footer: 'Bu aya kadar beklenen alacaklar', icon: Icons.south_west_rounded),
-        SummaryTile(title: 'Geciken kayıt', value: '${store.lateCount}',
-          footer: store.lateCount == 0 ? 'Gecikmiş ödeme yok' : 'Kontrol etmeniz gereken ödeme var',
-          icon: Icons.warning_amber_rounded),
-      ];
-      return Wrap(spacing: gap, runSpacing: gap, children: [for (final card in cards) SizedBox(width: w, child: card)]);
+      final width = constraints.maxWidth < 320 ? constraints.maxWidth : (constraints.maxWidth - 12) / 2;
+      return Wrap(spacing: 12, runSpacing: 12, children: [
+        SizedBox(width: width, child: SummaryTile(title: 'Beklenen tahsilat', value: formatCompactMoney(store.monthIncoming),
+          footer: 'Bu aya kadar alacaklar', icon: Icons.south_west_rounded)),
+        SizedBox(width: width, child: SummaryTile(title: 'Geciken kayıt', value: '${store.lateCount}',
+          footer: store.lateCount == 0 ? 'Her şey yolunda' : 'Kontrol etmen gerekiyor', icon: Icons.schedule_rounded)),
+      ]);
     }),
+    if (store.cloud.user == null) ...[
+      const SizedBox(height: 18),
+      Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('VADESİ hesabınla devam et', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 6),
+          const Text('Üyeliğini ve isteğe bağlı bulut yedeğini tek yerden yönet.'),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, children: [
+            TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => AuthPage(store: store))), child: const Text('Giriş yap')),
+            TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => AuthPage(store: store, register: true))), child: const Text('Üye ol')),
+          ]),
+        ],
+      ))),
+    ],
     const SizedBox(height: 27),
     SectionTitle('Sıradaki ödemeler', trailing: TextButton(onPressed: () => setState(() => _selected = 1),
       child: const Text('Tümünü gör'))),
@@ -230,6 +282,8 @@ class _HomeShellState extends State<HomeShell> {
     const SizedBox(height: 17),
     TextField(
       controller: _searchController,
+      textInputAction: TextInputAction.search,
+      onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
       onChanged: (v) => setState(() => _search = v.trim().toLowerCase()),
       decoration: const InputDecoration(prefixIcon: Icon(Icons.search_rounded), hintText: 'Ödeme veya kişi ara'),
     ),
@@ -387,11 +441,9 @@ class _HomeShellState extends State<HomeShell> {
         subtitle: const Text('Türkiye saati (Europe/Istanbul), tam saat olarak'),
         trailing: Text('${store.notifyHour.toString().padLeft(2, '0')}:00'),
         onTap: () async {
-          final time = await showTimePicker(context: context,
-            initialTime: TimeOfDay(hour: store.notifyHour, minute: 0),
-            helpText: 'Bildirim saati');
+          final time = await showWheelHourPicker(context, store.notifyHour);
           if (time != null) {
-            try { await store.setNotifyHour(time.hour); }
+            try { await store.setNotifyHour(time); }
             catch (e) { if (mounted) showError(context, e); }
           }
         },
@@ -431,7 +483,7 @@ class _HomeShellState extends State<HomeShell> {
           subtitle: Text('IBAN ve ödeme bilgileri cihazda tutulur; bu sürümde veritabanı şifreli değildir. Telefon ekran kilidini kullanın.')),
       ]))),
     const SizedBox(height: 21),
-    Center(child: Text('VADESİ · 1.1.0',
+    Center(child: Text('VADESİ · 1.2.0',
       style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant))),
   ]));
 }
