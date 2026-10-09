@@ -1,0 +1,397 @@
+import 'package:flutter/material.dart';
+import '../../models/payment.dart';
+import '../../state/app_store.dart';
+import '../widgets/common.dart';
+import 'payment_detail_page.dart';
+import 'payment_form_page.dart';
+
+class HomeShell extends StatefulWidget {
+  final AppStore store;
+  const HomeShell({super.key, required this.store});
+  @override
+  State<HomeShell> createState() => _HomeShellState();
+}
+
+class _HomeShellState extends State<HomeShell> {
+  int _selected = 0;
+  String _search = '';
+  String _filter = 'Tümü';
+  final _searchController = TextEditingController();
+
+  AppStore get store => widget.store;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openAdd() async {
+    final created = await Navigator.push<bool>(context,
+      MaterialPageRoute(builder: (_) => PaymentFormPage(store: store)));
+    if (!mounted || created != true || store.notificationsEnabled) return;
+    final want = await confirmAction(context,
+      title: 'Hatırlatmaları etkinleştir',
+      body: 'Ödemeleriniz için 5 gün önce, 1 gün önce ve vade günü cihaz bildirimi almak ister misiniz?',
+      confirm: 'Bildirimleri aç');
+    if (!want) return;
+    try {
+      final granted = await store.setNotifications(true);
+      if (!granted && mounted) showError(context, 'Bildirim izni verilmedi. Ayarlardan daha sonra açabilirsiniz.');
+    } catch (e) {
+      if (mounted) showError(context, e);
+    }
+  }
+
+  void _openDetails(DueItem item) => Navigator.push(context,
+    MaterialPageRoute(builder: (_) => PaymentDetailPage(store: store, planId: item.planId)));
+
+  Future<void> _pay(DueItem item) async {
+    try {
+      await store.markPaid(item);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(item.plan.direction == PaymentDirection.incoming
+          ? 'Tahsilat kaydedildi, takip güncellendi.'
+          : 'Ödeme kaydedildi, sonraki taksit hazır.'),
+        action: SnackBarAction(label: 'GERİ AL', onPressed: () async {
+          try {
+            await store.undoPaid(item);
+          } catch (e) {
+            if (mounted) showError(context, e);
+          }
+        }),
+      ));
+    } catch (e) {
+      if (mounted) showError(context, e);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final desktop = width >= 960;
+    final extended = width >= 1240;
+    return AnimatedBuilder(animation: store, builder: (context, _) {
+      if (store.loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      if (store.error != null) return Scaffold(body: SafeArea(child: EmptyView(
+        title: 'Uygulama açılamadı', message: store.error!, icon: Icons.error_outline)));
+      return Scaffold(
+        body: SafeArea(child: Row(children: [
+          if (desktop) ...[
+            NavigationRail(
+              selectedIndex: _selected,
+              extended: extended,
+              minExtendedWidth: 210,
+              onDestinationSelected: (v) => setState(() => _selected = v),
+              leading: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 19, 12, 34),
+                child: extended ? const Row(mainAxisSize: MainAxisSize.min, children: [
+                  ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.asset('assets/images/vadesi_mark.png', width: 30, height: 30)),
+                  SizedBox(width: 10),
+                  Text('VADESİ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: .8)),
+                ]) : const ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.asset('assets/images/vadesi_mark.png', width: 30, height: 30)),
+              ),
+              destinations: const [
+                NavigationRailDestination(icon: Icon(Icons.grid_view_outlined),
+                  selectedIcon: Icon(Icons.grid_view_rounded), label: Text('Genel bakış')),
+                NavigationRailDestination(icon: Icon(Icons.receipt_long_outlined),
+                  selectedIcon: Icon(Icons.receipt_long_rounded), label: Text('Ödemeler')),
+                NavigationRailDestination(icon: Icon(Icons.insert_chart_outlined),
+                  selectedIcon: Icon(Icons.insert_chart_rounded), label: Text('Raporlar')),
+                NavigationRailDestination(icon: Icon(Icons.settings_outlined),
+                  selectedIcon: Icon(Icons.settings_rounded), label: Text('Ayarlar')),
+              ],
+            ),
+            VerticalDivider(width: 1, color: Theme.of(context).dividerColor),
+          ],
+          Expanded(child: Column(children: [
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: width < 420 ? 15 : 22, vertical: 13),
+              decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor,
+                border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor))),
+              child: Row(children: [
+                if (!desktop) ...[
+                  Container(padding: const EdgeInsets.all(7), decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: .09),
+                    borderRadius: BorderRadius.circular(10)),
+                    child: ClipRRect(borderRadius: BorderRadius.circular(7), child: Image.asset('assets/images/vadesi_mark.png', width: 25, height: 25))),
+                  const SizedBox(width: 9),
+                  Text('VADESİ', style: Theme.of(context).textTheme.titleLarge?.copyWith(letterSpacing: .8)),
+                ] else Text(['Genel bakış', 'Ödemeler', 'Raporlar', 'Ayarlar'][_selected],
+                  style: Theme.of(context).textTheme.headlineSmall),
+                const Spacer(),
+                if (desktop) FilledButton.icon(onPressed: _openAdd, icon: const Icon(Icons.add_rounded),
+                  label: const Text('Yeni ödeme'))
+                else IconButton.filledTonal(icon: const Icon(Icons.add_rounded),
+                  tooltip: 'Yeni ödeme ekle', onPressed: _openAdd),
+              ]),
+            ),
+            Expanded(child: switch (_selected) {
+              0 => _dashboard(),
+              1 => _paymentsPage(),
+              2 => _reportsPage(),
+              _ => _settingsPage(),
+            }),
+          ])),
+        ])),
+        bottomNavigationBar: desktop ? null : NavigationBar(
+          selectedIndex: _selected,
+          onDestinationSelected: (v) => setState(() => _selected = v),
+          destinations: const [
+            NavigationDestination(icon: Icon(Icons.grid_view_outlined),
+              selectedIcon: Icon(Icons.grid_view_rounded), label: 'Genel'),
+            NavigationDestination(icon: Icon(Icons.receipt_long_outlined),
+              selectedIcon: Icon(Icons.receipt_long_rounded), label: 'Ödemeler'),
+            NavigationDestination(icon: Icon(Icons.insert_chart_outlined),
+              selectedIcon: Icon(Icons.insert_chart_rounded), label: 'Raporlar'),
+            NavigationDestination(icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings_rounded), label: 'Ayarlar'),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _pageLayout(Widget child) => LayoutBuilder(builder: (context, constraints) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(18, 21, 18, 42),
+      child: Align(alignment: Alignment.topCenter, child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1120), child: child)),
+    );
+  });
+
+  Widget _dashboard() => _pageLayout(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text('Ödemeleriniz tek yerde', style: Theme.of(context).textTheme.headlineMedium),
+    const SizedBox(height: 5),
+    Text('Taksit, fatura ve alacaklarınızı zamanında takip edin.',
+      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+    const SizedBox(height: 22),
+    LayoutBuilder(builder: (context, constraints) {
+      final columns = constraints.maxWidth >= 740 ? 3 : constraints.maxWidth >= 420 ? 2 : 1;
+      final gap = 12.0;
+      final w = (constraints.maxWidth - (columns - 1) * gap) / columns;
+      final cards = [
+        SummaryTile(title: 'Bu aya kadar ödenecek', value: formatCompactMoney(store.monthOutgoing),
+          footer: 'Vadesi gelen ve gecikmiş borçlar', icon: Icons.account_balance_wallet_outlined),
+        SummaryTile(title: 'Beklenen tahsilat', value: formatCompactMoney(store.monthIncoming),
+          footer: 'Bu aya kadar beklenen alacaklar', icon: Icons.south_west_rounded),
+        SummaryTile(title: 'Geciken kayıt', value: '${store.lateCount}',
+          footer: store.lateCount == 0 ? 'Gecikmiş ödeme yok' : 'Kontrol etmeniz gereken ödeme var',
+          icon: Icons.warning_amber_rounded),
+      ];
+      return Wrap(spacing: gap, runSpacing: gap, children: [for (final card in cards) SizedBox(width: w, child: card)]);
+    }),
+    const SizedBox(height: 27),
+    SectionTitle('Sıradaki ödemeler', trailing: TextButton(onPressed: () => setState(() => _selected = 1),
+      child: const Text('Tümünü gör'))),
+    if (store.upcoming.isEmpty)
+      const Card(child: EmptyView(title: 'Henüz ödeme yok',
+        message: 'İlk taksitinizi veya faturanızı ekleyerek başlayın.', icon: Icons.fact_check_outlined))
+    else for (final item in store.upcoming.take(7)) ...[
+      PaymentRowCard(due: item, onTap: () => _openDetails(item), onPaid: () => _pay(item)),
+      const SizedBox(height: 10),
+    ],
+    const SizedBox(height: 14),
+    Card(child: Padding(padding: const EdgeInsets.all(17), child: Row(children: [
+      Icon(Icons.notifications_active_outlined, color: Theme.of(context).colorScheme.primary),
+      const SizedBox(width: 12),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Bildirimler', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 4),
+        Text(store.notificationsEnabled
+            ? '5 gün önce normal, 1 gün önce dikkat, vade günü son uyarı aktif.'
+            : 'Bildirimler kapalı. Ayarlar bölümünden açabilirsiniz.',
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+      ])),
+      TextButton(onPressed: () => setState(() => _selected = 3), child: const Text('Ayarla')),
+    ]))),
+  ]));
+
+  Widget _paymentsPage() => _pageLayout(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text('Ödeme listesi', style: Theme.of(context).textTheme.headlineMedium),
+    const SizedBox(height: 4),
+    Text('Borç, taksit, fatura ve alacak kayıtlarını görüntüleyin.',
+      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+    const SizedBox(height: 17),
+    TextField(
+      controller: _searchController,
+      onChanged: (v) => setState(() => _search = v.trim().toLowerCase()),
+      decoration: const InputDecoration(prefixIcon: Icon(Icons.search_rounded), hintText: 'Ödeme veya kişi ara'),
+    ),
+    const SizedBox(height: 10),
+    SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
+      for (final f in ['Tümü', 'Taksit', 'Fatura', 'Abonelik', 'Alacaklar', 'Gecikenler', 'Geçmiş']) ...[
+        ChoiceChip(label: Text(f), selected: _filter == f, onSelected: (_) => setState(() => _filter = f)),
+        const SizedBox(width: 8),
+      ],
+    ])),
+    const SizedBox(height: 18),
+    Builder(builder: (context) {
+      final source = _filter == 'Geçmiş' ? store.history : store.upcoming;
+      final filtered = source.where((p) {
+        final matchesText = _search.isEmpty || p.plan.title.toLowerCase().contains(_search)
+          || p.plan.party.toLowerCase().contains(_search);
+        final matchesFilter = switch (_filter) {
+          'Taksit' => p.plan.kind == PaymentKind.installment,
+          'Fatura' => p.plan.kind == PaymentKind.invoice,
+          'Abonelik' => p.plan.kind == PaymentKind.subscription,
+          'Alacaklar' => p.plan.direction == PaymentDirection.incoming,
+          'Gecikenler' => p.isLate,
+          _ => true,
+        };
+        return matchesText && matchesFilter;
+      }).toList();
+      return Column(children: filtered.isEmpty
+        ? [const Card(child: EmptyView(title: 'Sonuç bulunamadı', message: 'Filtreyi değiştirin veya yeni ödeme ekleyin.', icon: Icons.search_off_rounded))]
+        : [for (final p in filtered) ...[
+            if (_filter == 'Geçmiş')
+              Card(child: ListTile(
+                leading: const Icon(Icons.check_circle_outline_rounded),
+                title: Text(p.plan.title),
+                subtitle: Text('${formatDate(p.dueDate)} · ${p.plan.party}'),
+                trailing: Text(formatCompactMoney(p.amountCents)),
+                onTap: () => _openDetails(p),
+              ))
+            else PaymentRowCard(due: p, onTap: () => _openDetails(p), onPaid: () => _pay(p)),
+            const SizedBox(height: 10),
+          ]]);
+    }),
+  ]));
+
+  Widget _reportsPage() {
+    final all = store.items;
+    final historical = store.history;
+    final outgoingPaid = historical.where((p) => p.plan.direction == PaymentDirection.outgoing)
+      .fold<int>(0, (value, item) => value + item.amountCents);
+    final received = historical.where((p) => p.plan.direction == PaymentDirection.incoming)
+      .fold<int>(0, (value, item) => value + item.amountCents);
+    final futureInstallments = all.where((p) => !p.isPaid && p.plan.isFinite)
+      .fold<int>(0, (sum, p) => sum + (p.plan.direction == PaymentDirection.outgoing ? p.amountCents : 0));
+    final categories = <String, int>{};
+    for (final p in store.upcoming) {
+      final key = p.plan.kind == PaymentKind.invoice ? p.plan.category.label : p.plan.kind.label;
+      categories[key] = (categories[key] ?? 0) + p.amountCents;
+    }
+    final sortedCategories = categories.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    return _pageLayout(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Finansal özet', style: Theme.of(context).textTheme.headlineMedium),
+      const SizedBox(height: 5),
+      Text('Kaydettiğiniz işlemlere dayalı kişisel takip raporu.',
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+      const SizedBox(height: 21),
+      LayoutBuilder(builder: (context, c) {
+        final cols = c.maxWidth >= 740 ? 3 : c.maxWidth >= 420 ? 2 : 1;
+        final w = (c.maxWidth - 12 * (cols - 1)) / cols;
+        return Wrap(spacing: 12, runSpacing: 12, children: [
+          SizedBox(width: w, child: SummaryTile(title: 'Kaydedilen ödemeler', value: formatCompactMoney(outgoingPaid),
+            footer: '${historical.length} tamamlanan kayıt', icon: Icons.check_circle_outline)),
+          SizedBox(width: w, child: SummaryTile(title: 'Tahsil edilen', value: formatCompactMoney(received),
+            footer: 'Alacak geçmişi', icon: Icons.call_received_rounded)),
+          SizedBox(width: w, child: SummaryTile(title: 'Kalan planlı borç', value: formatCompactMoney(futureInstallments),
+            footer: 'Sınırlı taksit ve tek seferlik ödemeler', icon: Icons.calendar_month_outlined)),
+        ]);
+      }),
+      const SizedBox(height: 23),
+      SectionTitle('Yaklaşan kayıtların dağılımı'),
+      if (sortedCategories.isEmpty)
+        const Card(child: EmptyView(title: 'Rapor için kayıt yok', message: 'Ödeme ekledikçe dağılım burada gösterilir.', icon: Icons.pie_chart_outline))
+      else Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(children: [
+        for (final category in sortedCategories) ...[
+          Row(children: [
+            Expanded(child: Text(category.key, style: Theme.of(context).textTheme.bodyMedium)),
+            Text(formatCompactMoney(category.value), style: Theme.of(context).textTheme.titleMedium),
+          ]),
+          const SizedBox(height: 9),
+          ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(
+            value: sortedCategories.first.value == 0 ? 0 : category.value / sortedCategories.first.value,
+            minHeight: 7,
+            backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: .09),
+          )),
+          const SizedBox(height: 19),
+        ],
+      ]))),
+      const SizedBox(height: 15),
+      Text('Not: Fatura ve abonelikler için yalnızca oluşturulan dönemler hesaba katılır. Banka hesabınızdan otomatik işlem kontrolü yapılmaz.',
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+    ]));
+  }
+
+  Widget _settingsPage() => _pageLayout(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text('Ayarlar', style: Theme.of(context).textTheme.headlineMedium),
+    const SizedBox(height: 5),
+    Text('Görünüm, hatırlatma ve gizlilik tercihleri.',
+      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+    const SizedBox(height: 20),
+    SectionTitle('Görünüm'),
+    Card(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
+      child: Column(children: [
+        RadioListTile<ThemeMode>(value: ThemeMode.system, groupValue: store.themeMode,
+          title: const Text('Sistem temasını kullan'), onChanged: (v) => store.setTheme(v!)),
+        RadioListTile<ThemeMode>(value: ThemeMode.light, groupValue: store.themeMode,
+          title: const Text('Aydınlık tema'), onChanged: (v) => store.setTheme(v!)),
+        RadioListTile<ThemeMode>(value: ThemeMode.dark, groupValue: store.themeMode,
+          title: const Text('Karanlık tema'), onChanged: (v) => store.setTheme(v!)),
+      ]))),
+    const SizedBox(height: 21),
+    SectionTitle('Hatırlatmalar'),
+    Card(child: Column(children: [
+      SwitchListTile.adaptive(
+        title: const Text('Ödeme bildirimleri'),
+        subtitle: const Text('Vade tarihinden 5 gün önce, 1 gün önce ve vade günü'),
+        value: store.notificationsEnabled,
+        onChanged: (v) async {
+          try {
+            final accepted = await store.setNotifications(v);
+            if (!accepted && mounted) showError(context, 'Bildirim izni reddedildi. Telefon ayarlarından izin verebilirsiniz.');
+          } catch (e) {
+            if (mounted) showError(context, e);
+          }
+        },
+      ),
+      const Divider(height: 1),
+      ListTile(
+        title: const Text('Bildirim saati'),
+        subtitle: const Text('Hatırlatmaların gönderilmesi istenen saat'),
+        trailing: Text('${store.notifyHour.toString().padLeft(2, '0')}:00'),
+        onTap: () async {
+          final time = await showTimePicker(context: context,
+            initialTime: TimeOfDay(hour: store.notifyHour, minute: 0),
+            helpText: 'Bildirim saati');
+          if (time != null) {
+            try { await store.setNotifyHour(time.hour); }
+            catch (e) { if (mounted) showError(context, e); }
+          }
+        },
+      ),
+    ])),
+    const SizedBox(height: 11),
+    Text('Bildirimler cihaz üzerinde zamanlanır. Telefon kapalıysa, izin verilmediyse veya işletim sistemi ertelerse bildirimin tam zamanında ulaşması garanti değildir.',
+      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+    if (store.reminderError != null) ...[
+      const SizedBox(height: 9),
+      Text('Bildirim planlama hatası: ${store.reminderError}',
+        style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12)),
+    ],
+    const SizedBox(height: 21),
+    SectionTitle('Veri ve gizlilik'),
+    Card(child: const Padding(padding: EdgeInsets.all(17), child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start, children: [
+        ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.phone_android_outlined),
+          title: Text('Veriler bu cihazda'),
+          subtitle: Text('Kayıtlar SQLite veritabanında telefonunuzda tutulur. Üyelik veya sunucu gerekmez.')),
+        Divider(),
+        ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.info_outline_rounded),
+          title: Text('Otomatik banka bağlantısı yok'),
+          subtitle: Text('Uygulama banka hesabınızdaki transferleri veya kurumlardaki güncel borçları otomatik sorgulamaz.')),
+        Divider(),
+        ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.security_outlined),
+          title: Text('Hassas bilgiler'),
+          subtitle: Text('IBAN ve ödeme bilgileri cihazda tutulur; bu sürümde veritabanı şifreli değildir. Telefon ekran kilidini kullanın.')),
+      ]))),
+    const SizedBox(height: 21),
+    Center(child: Text('VADESİ · 1.0.0',
+      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant))),
+  ]));
+}

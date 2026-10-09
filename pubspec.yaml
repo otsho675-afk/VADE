@@ -1,0 +1,37 @@
+name: vadesi
+description: "Taksit, fatura ve alacaklar icin kisisel odeme takip uygulamasi."
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  sqflite: ^2.3.3+1
+  path: ^1.9.0
+  shared_preferences: ^2.3.2
+  flutter_local_notifications: ^17.2.2
+  timezone: ^0.9.4
+  intl: 0.20.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/vadesi_mark.png
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/images/vadesi_mark.png
+  min_sdk_android: 23
