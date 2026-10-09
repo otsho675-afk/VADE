@@ -1,4 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../services/cloud_service.dart';
+import '../services/purchase_service.dart';
+import '../services/remote_push_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/local_database.dart';
 import '../models/payment.dart';
@@ -9,6 +13,10 @@ class AppStore extends ChangeNotifier {
   final ReminderService reminders;
   AppStore({LocalDatabase? database, ReminderService? reminderService})
       : db = database ?? LocalDatabase(), reminders = reminderService ?? ReminderService();
+  final cloud = CloudService();
+  final remotePush = RemotePushService();
+  late final purchases = PurchaseService(cloud);
+  bool _servicesStarted = false;
   bool _disposed = false;
   bool get supportsNotifications => reminders.supported;
   List<DueItem> items = [];
@@ -20,6 +28,10 @@ class AppStore extends ChangeNotifier {
   int notifyHour = 9;
 
   Future<void> initialize() async {
+    if (!_servicesStarted) {
+      _servicesStarted = true;
+      unawaited(_initializeServices());
+    }
     loading = true;
     error = null;
     notifyListeners();
@@ -31,12 +43,21 @@ class AppStore extends ChangeNotifier {
       notifyHour = (prefs.getInt('notify_hour') ?? 9).clamp(0, 23);
       await reminders.initialize();
       await refresh();
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('Local initialization failed: $e\\n$stack');
       error = 'Başlatma sırasında hata oluştu: $e';
     } finally {
       loading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> _initializeServices() async {
+    await cloud.initialize();
+    if (_disposed) return;
+    try { await remotePush.initialize(); await purchases.initialize(); }
+    catch (_) { cloud.error = 'Bildirim veya mağaza bağlantısı kurulamadı.'; }
+    notifyListeners();
   }
 
   Future<void> refresh() async {
@@ -142,6 +163,8 @@ class AppStore extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    cloud.dispose();
+    purchases.dispose();
     db.close();
     super.dispose();
   }

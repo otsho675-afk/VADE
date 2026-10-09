@@ -1,4 +1,4 @@
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:sqflite_common/sqlite_api.dart';
 
-DatabaseFactory platformDatabaseFactory() => databaseFactoryFfiWeb;
+DatabaseFactory platformDatabaseFactory() => databaseFactoryFfiWebNoWebWorker;

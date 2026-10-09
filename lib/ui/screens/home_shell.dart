@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'account_page.dart';
 import '../../models/payment.dart';
 import '../../state/app_store.dart';
 import '../widgets/common.dart';
@@ -335,6 +336,14 @@ class _HomeShellState extends State<HomeShell> {
     const SizedBox(height: 5),
     Text('Görünüm, hatırlatma ve gizlilik tercihleri.',
       style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+    const SizedBox(height: 20),
+    Card(child: ListTile(
+      leading: const Icon(Icons.account_circle_outlined),
+      title: const Text('Hesabım ve Premium'),
+      subtitle: const Text('Bulut yedeği, üyelik ve duyuru bildirimleri'),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AccountPage(store: store))),
+    )),
     const SizedBox(height: 20),
     const SectionTitle('Görünüm'),
     Card(child: ListTile(

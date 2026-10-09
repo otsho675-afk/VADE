@@ -13,3 +13,15 @@ android/.gradle/
 ios/Pods/
 ios/.symlinks/
 *.iml
+
+config/*.json
+!config/*.example.json
+backend/admin/config.js
+backend/functions/.env*
+backend/functions/node_modules/
+backend/functions/*service-account*.json
+*.p8
+*.p12
+*.jks
+*.keystore
+.firebase/
