@@ -152,8 +152,8 @@ DateTime addMonthsAnchored(DateTime start, int months, int anchorDay) {
 
 String sqlDate(DateTime date) => DateFormat('yyyy-MM-dd').format(date);
 String formatDate(DateTime date) => DateFormat('dd.MM.yyyy').format(date);
-String formatMoney(int cents) => NumberFormat.currency(locale: 'tr_TR', symbol: '₺', decimalDigits: 2).format(cents / 100);
-String formatCompactMoney(int cents) => NumberFormat.currency(locale: 'tr_TR', symbol: '₺', decimalDigits: cents % 100 == 0 ? 0 : 2).format(cents / 100);
+String formatMoney(int cents) => NumberFormat.currency(locale: 'tr', symbol: '₺', decimalDigits: 2).format(cents / 100);
+String formatCompactMoney(int cents) => NumberFormat.currency(locale: 'tr', symbol: '₺', decimalDigits: cents % 100 == 0 ? 0 : 2).format(cents / 100);
 
 int? parseMoneyToCents(String raw) {
   final input = raw.trim().replaceAll('₺', '').replaceAll(' ', '');

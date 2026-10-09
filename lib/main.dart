@@ -11,7 +11,7 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   // Keep the web interface available to screen readers for the app lifetime.
   if (kIsWeb) SemanticsBinding.instance.ensureSemantics();
-  Intl.defaultLocale = 'tr_TR';
+  Intl.defaultLocale = 'tr';
   runApp(const VadesiApp());
 }
 
@@ -42,8 +42,8 @@ class _VadesiAppState extends State<VadesiApp> {
     return AnimatedBuilder(animation: _store, builder: (_, __) => MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'VADESİ · Ödeme Takibi',
-      locale: const Locale('tr', 'TR'),
-      supportedLocales: const [Locale('tr', 'TR')],
+      locale: const Locale('tr'),
+      supportedLocales: const [Locale('tr')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
