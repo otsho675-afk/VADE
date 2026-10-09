@@ -19,7 +19,7 @@ if manifest.exists():
         </receiver>
     </application>''')
     if 'android.permission.INTERNET' not in xml:
-        xml = xml.replace('<application', '<uses-permission android:name="android.permission.INTERNET" />\\n    <application')
+        xml = xml.replace('<application', '<uses-permission android:name="android.permission.INTERNET" />\n    <application')
     xml = xml.replace('android:label="vadesi"', 'android:label="VADESİ"')
     manifest.write_text(xml, encoding='utf8')
 
