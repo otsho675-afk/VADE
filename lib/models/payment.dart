@@ -172,7 +172,8 @@ int? parseMoneyToCents(String raw) {
   if (whole == null) return null;
   final fractional = parts.length > 1 ? int.tryParse(parts[1].padRight(2, '0')) : 0;
   if (fractional == null) return null;
-  return whole * 100 + fractional;
+  final cents = whole * 100 + fractional;
+  return cents > 999999999999 ? null : cents;
 }
 
 bool isValidIban(String raw) {
@@ -193,4 +194,15 @@ bool isValidIban(String raw) {
     remainder = (remainder * 10 + digit - 48) % 97;
   }
   return remainder == 1;
+}
+
+void validateDraft(PlanDraft draft) {
+  if (draft.title.trim().isEmpty || draft.title.length > 200 ||
+      draft.party.length > 200 || draft.note.length > 5000 ||
+      !isValidIban(draft.iban) ||
+      draft.amountCents <= 0 || draft.amountCents > 999999999999 ||
+      draft.count < 1 || draft.count > 240 ||
+      draft.startDate.year < 2020 || draft.startDate.year > 2100) {
+    throw const FormatException('Ödeme bilgilerini kontrol edin.');
+  }
 }

@@ -1,16 +1,29 @@
+import 'dart:convert';
 import 'package:path/path.dart';
+import 'database_platform.dart';
+import 'backup_codec.dart';
 import 'package:sqflite/sqflite.dart';
 import '../models/payment.dart';
 
 class LocalDatabase {
   Database? _db;
+  Future<Database>? _opening;
+  final DatabaseFactory? factory;
+  final String? databasePath;
+  LocalDatabase({this.factory, this.databasePath});
 
   Future<Database> get connection async {
     if (_db != null) return _db!;
-    final base = await getDatabasesPath();
-    _db = await openDatabase(
-      join(base, 'vadesi.db'),
-      version: 1,
+    return _opening ??= _open();
+  }
+
+  Future<Database> _open() async {
+    final selectedFactory = factory ?? platformDatabaseFactory();
+    final path = databasePath ?? join(await selectedFactory.getDatabasesPath(), 'vadesi.db');
+    try {
+    _db = await selectedFactory.openDatabase(
+      path,
+      options: OpenDatabaseOptions(version: 1,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE plans (
@@ -44,9 +57,13 @@ class LocalDatabase {
         await db.execute('CREATE INDEX occurrence_due_index ON occurrences(due_date, paid_at)');
         await db.execute('CREATE INDEX occurrence_plan_index ON occurrences(plan_id, sequence)');
       },
-      onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
+      onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON')),
     );
     return _db!;
+    } catch (_) {
+      _opening = null;
+      rethrow;
+    }
   }
 
   Future<List<DueItem>> allItems() async {
@@ -62,6 +79,7 @@ class LocalDatabase {
   }
 
   Future<int> addPlan(PlanDraft draft) async {
+    validateDraft(draft);
     final db = await connection;
     return db.transaction((txn) async {
       final id = await txn.insert('plans', {
@@ -96,6 +114,7 @@ class LocalDatabase {
   /// Updates only unpaid amounts; paid history remains immutable.
   /// Schedule/count remain unchanged for existing plans to protect ledger history.
   Future<void> updatePlan(PaymentPlan plan, PlanDraft draft) async {
+    validateDraft(draft);
     final db = await connection;
     await db.transaction((txn) async {
       await txn.update('plans', {
@@ -164,8 +183,37 @@ class LocalDatabase {
     await db.delete('plans', where: 'id = ?', whereArgs: [id]);
   }
 
+  Future<String> exportBackup() async {
+    final db = await connection;
+    return db.transaction((txn) async => const JsonEncoder.withIndent('  ').convert({
+      'app': 'vadesi', 'version': 1,
+      'exported_at': DateTime.now().toUtc().toIso8601String(),
+      'plans': await txn.query('plans', orderBy: 'id'),
+      'occurrences': await txn.query('occurrences', orderBy: 'id'),
+    }));
+  }
+
+  Future<void> restoreBackup(String source) async {
+    final backup = BackupCodec.decode(source);
+    final db = await connection;
+    await db.transaction((txn) async {
+      await txn.delete('occurrences');
+      await txn.delete('plans');
+      for (final row in backup.plans) {
+        await txn.insert('plans', row);
+      }
+      for (final row in backup.occurrences) {
+        await txn.insert('occurrences', row);
+      }
+    });
+  }
+
   Future<void> close() async {
+    if (_opening != null) {
+      try { await _opening; } catch (_) { /* Failed open has no handle. */ }
+    }
     await _db?.close();
     _db = null;
+    _opening = null;
   }
 }

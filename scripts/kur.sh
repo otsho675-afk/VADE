@@ -10,6 +10,8 @@ for folder in android ios; do
   if [ ! -d "$folder" ]; then cp -R "$tmp/$folder" "$folder"; fi
 done
 python3 scripts/patch_android.py
+python3 scripts/prepare_platforms.py
 flutter pub get
-dart run flutter_launcher_icons || echo 'Uygulama simgesi olusturulamadi (istege bagli).'
+dart run sqflite_common_ffi_web:setup
+dart run flutter_launcher_icons
 echo 'Tamamlandi. flutter run ile baslatabilirsiniz.'

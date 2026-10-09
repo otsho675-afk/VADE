@@ -69,8 +69,10 @@ try {
 
   flutter pub get
   if ($LASTEXITCODE -ne 0) { throw 'Paketler indirilemedi. Baglantinizi ve Flutter SDK surumunu kontrol edin.' }
+  dart run sqflite_common_ffi_web:setup
+  if ($LASTEXITCODE -ne 0) { throw 'Web SQLite dosyalari hazirlanamadi.' }
   dart run flutter_launcher_icons
-  if ($LASTEXITCODE -ne 0) { Write-Warning 'Uygulama simgesi olusturulamadi; uygulama yine calisir.' }
+  if ($LASTEXITCODE -ne 0) { throw 'Uygulama simgesi olusturulamadi.' }
   Write-Host ''
   Write-Host 'HAZIR! Uygulamayi baslatmak icin: flutter run'
   Write-Host 'APK: flutter build apk --release'

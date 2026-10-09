@@ -5,8 +5,12 @@ import '../models/payment.dart';
 import '../services/reminder_service.dart';
 
 class AppStore extends ChangeNotifier {
-  final LocalDatabase db = LocalDatabase();
-  final ReminderService reminders = ReminderService();
+  final LocalDatabase db;
+  final ReminderService reminders;
+  AppStore({LocalDatabase? database, ReminderService? reminderService})
+      : db = database ?? LocalDatabase(), reminders = reminderService ?? ReminderService();
+  bool _disposed = false;
+  bool get supportsNotifications => reminders.supported;
   List<DueItem> items = [];
   bool loading = true;
   String? error;
@@ -16,11 +20,15 @@ class AppStore extends ChangeNotifier {
   int notifyHour = 9;
 
   Future<void> initialize() async {
+    loading = true;
+    error = null;
+    notifyListeners();
     try {
       final prefs = await SharedPreferences.getInstance();
-      themeMode = ThemeMode.values.byName(prefs.getString('theme_mode') ?? 'system');
-      notificationsEnabled = prefs.getBool('notifications_enabled') ?? false;
-      notifyHour = prefs.getInt('notify_hour') ?? 9;
+      themeMode = ThemeMode.values.firstWhere(
+        (mode) => mode.name == prefs.getString('theme_mode'), orElse: () => ThemeMode.system);
+      notificationsEnabled = supportsNotifications && (prefs.getBool('notifications_enabled') ?? false);
+      notifyHour = (prefs.getInt('notify_hour') ?? 9).clamp(0, 23);
       await reminders.initialize();
       await refresh();
     } catch (e) {
@@ -75,7 +83,7 @@ class AppStore extends ChangeNotifier {
   Future<void> setTheme(ThemeMode value) async {
     themeMode = value;
     notifyListeners();
-    (await SharedPreferences.getInstance()).setString('theme_mode', value.name);
+    await (await SharedPreferences.getInstance()).setString('theme_mode', value.name);
   }
 
   Future<bool> setNotifications(bool enabled) async {
@@ -88,6 +96,7 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<void> setNotifyHour(int value) async {
+    if (value < 0 || value > 23) throw ArgumentError.value(value, 'hour');
     notifyHour = value;
     (await SharedPreferences.getInstance()).setInt('notify_hour', value);
     await reminders.sync(items, enabled: notificationsEnabled, hour: value);
@@ -110,8 +119,8 @@ class AppStore extends ChangeNotifier {
   List<DueItem> planItems(int id) => items.where((e) => e.planId == id).toList()
     ..sort((a, b) => a.sequence.compareTo(b.sequence));
 
-  int get monthOutgoing => upcoming.where((e) =>
-    e.plan.direction == PaymentDirection.outgoing &&
+  int get monthOutgoing => items.where((e) =>
+    !e.isPaid && e.plan.direction == PaymentDirection.outgoing &&
     (e.dueDate.isBefore(DateTime(DateTime.now().year, DateTime.now().month + 1)))).fold(0, (sum, e) => sum + e.amountCents);
 
   int get monthIncoming => upcoming.where((e) =>
@@ -126,7 +135,13 @@ class AppStore extends ChangeNotifier {
   int get lateCount => upcoming.where((e) => e.isLate).length;
 
   @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
+  }
+
+  @override
   void dispose() {
+    _disposed = true;
     db.close();
     super.dispose();
   }

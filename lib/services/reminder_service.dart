@@ -7,11 +7,13 @@ import '../models/payment.dart';
 class ReminderService {
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   bool _ready = false;
+  bool get supported => !kIsWeb && (defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS);
 
   /// Default regional timezone for the Turkish-language edition.
   /// Times are scheduled on the device by the OS, not via an external server.
   Future<void> initialize() async {
-    if (kIsWeb) return;
+    if (!supported) return;
     tzdata.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Europe/Istanbul'));
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -51,7 +53,8 @@ class ReminderService {
       if (item.isPaid) continue;
       nextByPlan.putIfAbsent(item.planId, () => item);
     }
-    final prioritized = nextByPlan.values.toList()
+    final today = dateOnly(DateTime.now());
+    final prioritized = nextByPlan.values.where((item) => !item.dueDate.isBefore(today)).toList()
       ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
     // Apple limits pending local notifications. Keep 3 notifications for
     // the nearest 20 payments (60 total), leaving a few OS slots free.
@@ -108,7 +111,6 @@ class ReminderService {
         iOS: const DarwinNotificationDetails(presentAlert: true, presentBadge: true, presentSound: true),
       ),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 }

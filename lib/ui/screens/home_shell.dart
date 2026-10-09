@@ -4,6 +4,8 @@ import '../../state/app_store.dart';
 import '../widgets/common.dart';
 import 'payment_detail_page.dart';
 import 'payment_form_page.dart';
+import 'backup_page.dart';
+import 'calendar_page.dart';
 
 class HomeShell extends StatefulWidget {
   final AppStore store;
@@ -29,7 +31,7 @@ class _HomeShellState extends State<HomeShell> {
   Future<void> _openAdd() async {
     final created = await Navigator.push<bool>(context,
       MaterialPageRoute(builder: (_) => PaymentFormPage(store: store)));
-    if (!mounted || created != true || store.notificationsEnabled) return;
+    if (!mounted || created != true || store.notificationsEnabled || !store.supportsNotifications) return;
     final want = await confirmAction(context,
       title: 'Hatırlatmaları etkinleştir',
       body: 'Ödemeleriniz için 5 gün önce, 1 gün önce ve vade günü cihaz bildirimi almak ister misiniz?',
@@ -75,8 +77,14 @@ class _HomeShellState extends State<HomeShell> {
     final extended = width >= 1240;
     return AnimatedBuilder(animation: store, builder: (context, _) {
       if (store.loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-      if (store.error != null) return Scaffold(body: SafeArea(child: EmptyView(
-        title: 'Uygulama açılamadı', message: store.error!, icon: Icons.error_outline)));
+      if (store.error != null) return Scaffold(body: SafeArea(child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          EmptyView(title: 'Uygulama açılamadı', message: store.error!, icon: Icons.error_outline),
+          FilledButton.icon(onPressed: store.initialize, icon: const Icon(Icons.refresh),
+            label: const Text('Yeniden dene')),
+        ],
+      )));
       return Scaffold(
         body: SafeArea(child: Row(children: [
           if (desktop) ...[
@@ -87,11 +95,11 @@ class _HomeShellState extends State<HomeShell> {
               onDestinationSelected: (v) => setState(() => _selected = v),
               leading: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 19, 12, 34),
-                child: extended ? const Row(mainAxisSize: MainAxisSize.min, children: [
+                child: extended ? Row(mainAxisSize: MainAxisSize.min, children: [
                   ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.asset('assets/images/vadesi_mark.png', width: 30, height: 30)),
                   SizedBox(width: 10),
                   Text('VADESİ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: .8)),
-                ]) : const ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.asset('assets/images/vadesi_mark.png', width: 30, height: 30)),
+                ]) : ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.asset('assets/images/vadesi_mark.png', width: 30, height: 30)),
               ),
               destinations: const [
                 NavigationRailDestination(icon: Icon(Icons.grid_view_outlined),
@@ -122,6 +130,10 @@ class _HomeShellState extends State<HomeShell> {
                 ] else Text(['Genel bakış', 'Ödemeler', 'Raporlar', 'Ayarlar'][_selected],
                   style: Theme.of(context).textTheme.headlineSmall),
                 const Spacer(),
+                IconButton(tooltip: 'Ödeme takvimi', icon: const Icon(Icons.calendar_month_outlined),
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => CalendarPage(store: store)))),
+
                 if (desktop) FilledButton.icon(onPressed: _openAdd, icon: const Icon(Icons.add_rounded),
                   label: const Text('Yeni ödeme'))
                 else IconButton.filledTonal(icon: const Icon(Icons.add_rounded),
@@ -270,7 +282,7 @@ class _HomeShellState extends State<HomeShell> {
     final futureInstallments = all.where((p) => !p.isPaid && p.plan.isFinite)
       .fold<int>(0, (sum, p) => sum + (p.plan.direction == PaymentDirection.outgoing ? p.amountCents : 0));
     final categories = <String, int>{};
-    for (final p in store.upcoming) {
+    for (final p in store.upcoming.where((p) => p.plan.direction == PaymentDirection.outgoing)) {
       final key = p.plan.kind == PaymentKind.invoice ? p.plan.category.label : p.plan.kind.label;
       categories[key] = (categories[key] ?? 0) + p.amountCents;
     }
@@ -294,7 +306,7 @@ class _HomeShellState extends State<HomeShell> {
         ]);
       }),
       const SizedBox(height: 23),
-      SectionTitle('Yaklaşan kayıtların dağılımı'),
+      SectionTitle('Yaklaşan borçların dağılımı'),
       if (sortedCategories.isEmpty)
         const Card(child: EmptyView(title: 'Rapor için kayıt yok', message: 'Ödeme ekledikçe dağılım burada gösterilir.', icon: Icons.pie_chart_outline))
       else Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(children: [
@@ -339,9 +351,11 @@ class _HomeShellState extends State<HomeShell> {
     Card(child: Column(children: [
       SwitchListTile.adaptive(
         title: const Text('Ödeme bildirimleri'),
-        subtitle: const Text('Vade tarihinden 5 gün önce, 1 gün önce ve vade günü'),
+        subtitle: Text(store.supportsNotifications
+          ? 'Vade tarihinden 5 gün önce, 1 gün önce ve vade günü'
+          : 'Yerel bildirimler Android ve iOS uygulamasında kullanılabilir.'),
         value: store.notificationsEnabled,
-        onChanged: (v) async {
+        onChanged: !store.supportsNotifications ? null : (v) async {
           try {
             final accepted = await store.setNotifications(v);
             if (!accepted && mounted) showError(context, 'Bildirim izni reddedildi. Telefon ayarlarından izin verebilirsiniz.');
@@ -353,7 +367,7 @@ class _HomeShellState extends State<HomeShell> {
       const Divider(height: 1),
       ListTile(
         title: const Text('Bildirim saati'),
-        subtitle: const Text('Hatırlatmaların gönderilmesi istenen saat'),
+        subtitle: const Text('Türkiye saati (Europe/Istanbul), tam saat olarak'),
         trailing: Text('${store.notifyHour.toString().padLeft(2, '0')}:00'),
         onTap: () async {
           final time = await showTimePicker(context: context,
@@ -375,12 +389,21 @@ class _HomeShellState extends State<HomeShell> {
         style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12)),
     ],
     const SizedBox(height: 21),
+    SectionTitle('Yedekleme ve dışa aktarma'),
+    Card(child: ListTile(
+      leading: const Icon(Icons.backup_outlined),
+      title: const Text('Yedek al, geri yükle ve CSV aktar'),
+      subtitle: const Text('Kayıtlarını bir dosyada sakla veya tablo olarak dışa aktar.'),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BackupPage(store: store))),
+    )),
+    const SizedBox(height: 21),
     SectionTitle('Veri ve gizlilik'),
     Card(child: const Padding(padding: EdgeInsets.all(17), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start, children: [
         ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.phone_android_outlined),
           title: Text('Veriler bu cihazda'),
-          subtitle: Text('Kayıtlar SQLite veritabanında telefonunuzda tutulur. Üyelik veya sunucu gerekmez.')),
+          subtitle: Text('Kayıtlar bu cihazda tutulur. Web sürümünde tarayıcı verilerini temizlemek kayıtları siler. Düzenli yedek alın.')),
         Divider(),
         ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.info_outline_rounded),
           title: Text('Otomatik banka bağlantısı yok'),
@@ -391,7 +414,7 @@ class _HomeShellState extends State<HomeShell> {
           subtitle: Text('IBAN ve ödeme bilgileri cihazda tutulur; bu sürümde veritabanı şifreli değildir. Telefon ekran kilidini kullanın.')),
       ]))),
     const SizedBox(height: 21),
-    Center(child: Text('VADESİ · 1.0.0',
+    Center(child: Text('VADESİ · 1.1.0',
       style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant))),
   ]));
 }

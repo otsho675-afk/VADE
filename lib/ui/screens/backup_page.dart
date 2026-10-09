@@ -1,0 +1,93 @@
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import '../../state/app_store.dart';
+import '../../services/ledger_export.dart';
+import '../../data/backup_codec.dart';
+import '../widgets/common.dart';
+
+class BackupPage extends StatefulWidget {
+  final AppStore store;
+  const BackupPage({super.key, required this.store});
+  @override
+  State<BackupPage> createState() => _BackupPageState();
+}
+
+class _BackupPageState extends State<BackupPage> {
+  bool _busy = false;
+
+  Future<void> _run(Future<void> Function() action) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await action();
+    } catch (error) {
+      if (mounted) showError(context, error);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _save(String content, String extension) async {
+    final date = DateTime.now().toIso8601String().substring(0, 10);
+    final path = await FilePicker.platform.saveFile(
+      dialogTitle: 'VADESİ dosyasını kaydet',
+      fileName: 'vadesi-$date.$extension',
+      type: FileType.custom,
+      allowedExtensions: [extension],
+      bytes: Uint8List.fromList(utf8.encode(content)),
+    );
+    if (mounted && path != null) showSuccess(context, 'Dosya kaydedildi.');
+  }
+
+  Future<void> _restore() async {
+    final selected = await FilePicker.platform.pickFiles(
+      type: FileType.custom, allowedExtensions: ['json'], withData: true,
+    );
+    if (selected == null || !mounted) return;
+    final file = selected.files.single;
+    if (file.size > 10000000 || file.bytes == null) {
+      throw const FormatException('En fazla 10 MB boyutunda bir JSON yedeği seçin.');
+    }
+    final source = utf8.decode(file.bytes!);
+    final preview = BackupCodec.decode(source);
+    final allow = await confirmAction(context, title: 'Yedeği geri yükle',
+      body: '${preview.plans.length} plan ve ${preview.occurrences.length} ödeme yüklenecek. '
+        'Mevcut kayıtların tamamı bu yedekle değiştirilecek. Önce mevcut kayıtlarını yedeklediğinden emin ol.',
+      confirm: 'Kayıtları değiştir', destructive: true);
+    if (!allow) return;
+    await widget.store.db.restoreBackup(source);
+    await widget.store.refresh();
+    if (mounted) showSuccess(context, 'Yedek geri yüklendi.');
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Yedekleme ve dışa aktarma')),
+    body: Center(child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 720),
+      child: ListView(padding: const EdgeInsets.all(20), children: [
+        const Text('JSON yedeği ödeme planlarını ve ödeme geçmişini içerir. '
+          'Tema ve bildirim izinleri cihazda kalır. Yedek dosyası şifrelenmez; güvenli bir yerde saklayın.'),
+        const SizedBox(height: 20),
+        ListTile(leading: const Icon(Icons.download_outlined),
+          title: const Text('JSON yedeği al'),
+          subtitle: const Text('Başka cihazda da geri yüklenebilir.'),
+          onTap: _busy ? null : () => _run(() async => _save(await widget.store.db.exportBackup(), 'json'))),
+        const Divider(),
+        ListTile(leading: const Icon(Icons.upload_file_outlined),
+          title: const Text('JSON yedeğini geri yükle'),
+          subtitle: const Text('Dosya doğrulandıktan ve onayladıktan sonra kayıtlar değiştirilir.'),
+          onTap: _busy ? null : () => _run(_restore)),
+        const Divider(),
+        ListTile(leading: const Icon(Icons.table_view_outlined),
+          title: const Text('CSV olarak dışa aktar'),
+          subtitle: const Text('Ödemeleri Excel veya başka bir tablo uygulamasında aç.'),
+          onTap: _busy ? null : () => _run(() => _save(ledgerCsv(widget.store.items), 'csv'))),
+        if (_busy) const Padding(padding: EdgeInsets.all(24),
+          child: Center(child: CircularProgressIndicator())),
+      ]),
+    )),
+  );
+}

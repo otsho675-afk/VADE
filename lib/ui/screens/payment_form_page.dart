@@ -139,13 +139,14 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
                 ],
                 TextFormField(
                   controller: _title,
+                  maxLength: 200,
                   textCapitalization: TextCapitalization.sentences,
                   decoration: InputDecoration(labelText: 'Ödeme adı *',
                     hintText: _kind == PaymentKind.invoice ? 'Örn. Ev elektrik faturası' : 'Örn. Telefon taksiti'),
                   validator: (v) => (v?.trim().isEmpty ?? true) ? 'Ödeme adı girin.' : null,
                 ),
                 const SizedBox(height: 14),
-                TextFormField(controller: _party,
+                TextFormField(controller: _party, maxLength: 200,
                   textCapitalization: TextCapitalization.words,
                   decoration: InputDecoration(
                     labelText: _direction == PaymentDirection.outgoing ? 'Kime / hangi kuruma?' : 'Kimden alacağım?',
@@ -161,6 +162,7 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
                 if (_kind == PaymentKind.installment) ...[
                   const SizedBox(height: 14),
                   TextFormField(controller: _count,
+                    onChanged: (_) => setState(() {}),
                     enabled: !editing,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -183,7 +185,7 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
                   const SizedBox(height: 8),
                   Text(
                     _kind == PaymentKind.installment
-                      ? 'Her ay aynı gün için $_count taksit planlanır. Ayda o gün yoksa ayın son günü kullanılır.'
+                      ? 'Her ay aynı gün için ${_count.text} taksit planlanır. Ayda o gün yoksa ayın son günü kullanılır.'
                       : _kind.isRecurring
                         ? 'Ödendi olarak işaretlediğinizde gelecek ayın ödemesi otomatik oluşturulur.'
                         : 'Bu ödeme tek seferlik olarak oluşturulur.',
@@ -207,6 +209,7 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
                 TextFormField(controller: _notes,
                   textCapitalization: TextCapitalization.sentences,
                   maxLines: 3,
+                  maxLength: 5000,
                   decoration: const InputDecoration(labelText: 'Açıklama (isteğe bağlı)', hintText: 'Ödeme hakkında notlarınız')),
               ],
             ))),
