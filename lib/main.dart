@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/semantics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart';
 import 'state/app_store.dart';
@@ -7,6 +9,8 @@ import 'ui/screens/home_shell.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // Keep the web interface available to screen readers for the app lifetime.
+  if (kIsWeb) SemanticsBinding.instance.ensureSemantics();
   Intl.defaultLocale = 'tr_TR';
   runApp(const VadesiApp());
 }

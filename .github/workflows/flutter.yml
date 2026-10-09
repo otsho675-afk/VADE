@@ -26,7 +26,7 @@ jobs:
       - run: dart run sqflite_common_ffi_web:setup
       - run: flutter analyze --no-fatal-infos
       - run: flutter test
-      - run: flutter build web --release
+      - run: flutter build web --release --no-web-resources-cdn
       - name: Install browser test tools
         run: |
           npm install --no-save --package-lock=false playwright@1.56.1
