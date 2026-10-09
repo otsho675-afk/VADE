@@ -77,14 +77,14 @@ class _HomeShellState extends State<HomeShell> {
     final extended = width >= 1240;
     return AnimatedBuilder(animation: store, builder: (context, _) {
       if (store.loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-      if (store.error != null) return Scaffold(body: SafeArea(child: Column(
+      if (store.error != null) { return Scaffold(body: SafeArea(child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           EmptyView(title: 'Uygulama açılamadı', message: store.error!, icon: Icons.error_outline),
           FilledButton.icon(onPressed: store.initialize, icon: const Icon(Icons.refresh),
             label: const Text('Yeniden dene')),
         ],
-      )));
+      ))); }
       return Scaffold(
         body: SafeArea(child: Row(children: [
           if (desktop) ...[
@@ -97,8 +97,8 @@ class _HomeShellState extends State<HomeShell> {
                 padding: const EdgeInsets.fromLTRB(12, 19, 12, 34),
                 child: extended ? Row(mainAxisSize: MainAxisSize.min, children: [
                   ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.asset('assets/images/vadesi_mark.png', width: 30, height: 30)),
-                  SizedBox(width: 10),
-                  Text('VADESİ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: .8)),
+                  const SizedBox(width: 10),
+                  const Text('VADESİ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: .8)),
                 ]) : ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.asset('assets/images/vadesi_mark.png', width: 30, height: 30)),
               ),
               destinations: const [
@@ -182,7 +182,7 @@ class _HomeShellState extends State<HomeShell> {
     const SizedBox(height: 22),
     LayoutBuilder(builder: (context, constraints) {
       final columns = constraints.maxWidth >= 740 ? 3 : constraints.maxWidth >= 420 ? 2 : 1;
-      final gap = 12.0;
+      const gap = 12.0;
       final w = (constraints.maxWidth - (columns - 1) * gap) / columns;
       final cards = [
         SummaryTile(title: 'Bu aya kadar ödenecek', value: formatCompactMoney(store.monthOutgoing),
@@ -306,7 +306,7 @@ class _HomeShellState extends State<HomeShell> {
         ]);
       }),
       const SizedBox(height: 23),
-      SectionTitle('Yaklaşan borçların dağılımı'),
+      const SectionTitle('Yaklaşan borçların dağılımı'),
       if (sortedCategories.isEmpty)
         const Card(child: EmptyView(title: 'Rapor için kayıt yok', message: 'Ödeme ekledikçe dağılım burada gösterilir.', icon: Icons.pie_chart_outline))
       else Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(children: [
@@ -336,18 +336,26 @@ class _HomeShellState extends State<HomeShell> {
     Text('Görünüm, hatırlatma ve gizlilik tercihleri.',
       style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
     const SizedBox(height: 20),
-    SectionTitle('Görünüm'),
-    Card(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
-      child: Column(children: [
-        RadioListTile<ThemeMode>(value: ThemeMode.system, groupValue: store.themeMode,
-          title: const Text('Sistem temasını kullan'), onChanged: (v) => store.setTheme(v!)),
-        RadioListTile<ThemeMode>(value: ThemeMode.light, groupValue: store.themeMode,
-          title: const Text('Aydınlık tema'), onChanged: (v) => store.setTheme(v!)),
-        RadioListTile<ThemeMode>(value: ThemeMode.dark, groupValue: store.themeMode,
-          title: const Text('Karanlık tema'), onChanged: (v) => store.setTheme(v!)),
-      ]))),
+    const SectionTitle('Görünüm'),
+    Card(child: ListTile(
+      leading: const Icon(Icons.palette_outlined),
+      title: const Text('Uygulama teması'),
+      trailing: DropdownButton<ThemeMode>(
+        value: store.themeMode,
+        items: const [
+          DropdownMenuItem(value: ThemeMode.system, child: Text('Sistem')),
+          DropdownMenuItem(value: ThemeMode.light, child: Text('Aydınlık')),
+          DropdownMenuItem(value: ThemeMode.dark, child: Text('Karanlık')),
+        ],
+        onChanged: (value) async {
+          if (value == null) return;
+          try { await store.setTheme(value); }
+          catch (error) { if (mounted) showError(context, error); }
+        },
+      ),
+    )),
     const SizedBox(height: 21),
-    SectionTitle('Hatırlatmalar'),
+    const SectionTitle('Hatırlatmalar'),
     Card(child: Column(children: [
       SwitchListTile.adaptive(
         title: const Text('Ödeme bildirimleri'),
@@ -389,7 +397,7 @@ class _HomeShellState extends State<HomeShell> {
         style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12)),
     ],
     const SizedBox(height: 21),
-    SectionTitle('Yedekleme ve dışa aktarma'),
+    const SectionTitle('Yedekleme ve dışa aktarma'),
     Card(child: ListTile(
       leading: const Icon(Icons.backup_outlined),
       title: const Text('Yedek al, geri yükle ve CSV aktar'),
@@ -398,8 +406,8 @@ class _HomeShellState extends State<HomeShell> {
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BackupPage(store: store))),
     )),
     const SizedBox(height: 21),
-    SectionTitle('Veri ve gizlilik'),
-    Card(child: const Padding(padding: EdgeInsets.all(17), child: Column(
+    const SectionTitle('Veri ve gizlilik'),
+    const Card(child: Padding(padding: EdgeInsets.all(17), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start, children: [
         ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.phone_android_outlined),
           title: Text('Veriler bu cihazda'),

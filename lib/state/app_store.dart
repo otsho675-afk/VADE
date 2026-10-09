@@ -89,7 +89,7 @@ class AppStore extends ChangeNotifier {
   Future<bool> setNotifications(bool enabled) async {
     if (enabled && !(await reminders.requestPermissions())) return false;
     notificationsEnabled = enabled;
-    (await SharedPreferences.getInstance()).setBool('notifications_enabled', enabled);
+    await (await SharedPreferences.getInstance()).setBool('notifications_enabled', enabled);
     await reminders.sync(items, enabled: enabled, hour: notifyHour);
     notifyListeners();
     return true;
@@ -98,7 +98,7 @@ class AppStore extends ChangeNotifier {
   Future<void> setNotifyHour(int value) async {
     if (value < 0 || value > 23) throw ArgumentError.value(value, 'hour');
     notifyHour = value;
-    (await SharedPreferences.getInstance()).setInt('notify_hour', value);
+    await (await SharedPreferences.getInstance()).setInt('notify_hour', value);
     await reminders.sync(items, enabled: notificationsEnabled, hour: value);
     notifyListeners();
   }
@@ -123,8 +123,8 @@ class AppStore extends ChangeNotifier {
     !e.isPaid && e.plan.direction == PaymentDirection.outgoing &&
     (e.dueDate.isBefore(DateTime(DateTime.now().year, DateTime.now().month + 1)))).fold(0, (sum, e) => sum + e.amountCents);
 
-  int get monthIncoming => upcoming.where((e) =>
-    e.plan.direction == PaymentDirection.incoming &&
+  int get monthIncoming => items.where((e) =>
+    !e.isPaid && e.plan.direction == PaymentDirection.incoming &&
     e.dueDate.isBefore(DateTime(DateTime.now().year, DateTime.now().month + 1))).fold(0, (sum, e) => sum + e.amountCents);
 
   int get paidThisMonth => history.where((e) =>

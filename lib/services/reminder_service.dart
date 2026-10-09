@@ -43,7 +43,16 @@ class ReminderService {
     return false;
   }
 
-  Future<void> sync(List<DueItem> allItems, {required bool enabled, required int hour}) async {
+  Future<void> _pendingSync = Future<void>.value();
+
+  Future<void> sync(List<DueItem> allItems, {required bool enabled, required int hour}) {
+    final snapshot = List<DueItem>.of(allItems);
+    final next = _pendingSync.then((_) => _sync(snapshot, enabled: enabled, hour: hour));
+    _pendingSync = next.catchError((Object _) {});
+    return next;
+  }
+
+  Future<void> _sync(List<DueItem> allItems, {required bool enabled, required int hour}) async {
     if (!_ready) return;
     await _plugin.cancelAll();
     if (!enabled) return;

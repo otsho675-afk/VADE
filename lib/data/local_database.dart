@@ -19,8 +19,8 @@ class LocalDatabase {
 
   Future<Database> _open() async {
     final selectedFactory = factory ?? platformDatabaseFactory();
-    final path = databasePath ?? join(await selectedFactory.getDatabasesPath(), 'vadesi.db');
     try {
+    final path = databasePath ?? join(await selectedFactory.getDatabasesPath(), 'vadesi.db');
     _db = await selectedFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(version: 1,

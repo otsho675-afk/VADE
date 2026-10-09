@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../../state/app_store.dart';
 import '../../services/ledger_export.dart';
+import '../../services/save_export.dart';
 import '../../data/backup_codec.dart';
 import '../widgets/common.dart';
 
@@ -31,14 +32,18 @@ class _BackupPageState extends State<BackupPage> {
 
   Future<void> _save(String content, String extension) async {
     final date = DateTime.now().toIso8601String().substring(0, 10);
+    final bytes = Uint8List.fromList(utf8.encode(content));
     final path = await FilePicker.platform.saveFile(
       dialogTitle: 'VADESİ dosyasını kaydet',
       fileName: 'vadesi-$date.$extension',
       type: FileType.custom,
       allowedExtensions: [extension],
-      bytes: Uint8List.fromList(utf8.encode(content)),
+      bytes: bytes,
     );
-    if (mounted && path != null) showSuccess(context, 'Dosya kaydedildi.');
+    if (path != null) {
+      await finishExport(path, bytes);
+      if (mounted) showSuccess(context, 'Dosya kaydedildi.');
+    }
   }
 
   Future<void> _restore() async {

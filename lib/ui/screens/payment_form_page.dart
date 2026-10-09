@@ -129,7 +129,7 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
                 const SizedBox(height: 15),
                 if (_kind == PaymentKind.invoice) ...[
                   DropdownButtonFormField<InvoiceCategory>(
-                    value: _category,
+                    initialValue: _category,
                     decoration: const InputDecoration(labelText: 'Fatura kategorisi'),
                     items: [for (final c in InvoiceCategory.values) DropdownMenuItem(value: c,
                       child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(c.icon, size: 18), const SizedBox(width: 8), Text(c.label)]))],
@@ -154,7 +154,7 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
                 const SizedBox(height: 14),
                 TextFormField(controller: _amount,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(labelText: 'Tutar (TL) *', prefixText: '₺  ', hintText: '1.250,00'),
+                  decoration: const InputDecoration(labelText: 'Tutar (TL) *', prefixText: '₺  ', hintText: '1.250,00'),
                   validator: (v) {
                     final cents = parseMoneyToCents(v ?? '');
                     return cents == null || cents <= 0 ? 'Geçerli, sıfırdan büyük bir tutar girin.' : null;

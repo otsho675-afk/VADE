@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:vadesi/data/local_database.dart';
@@ -58,6 +59,24 @@ void main() {
     final expected = store.items.where((item) => item.dueDate.isBefore(end))
       .fold<int>(0, (sum, item) => sum + item.amountCents);
     expect(store.monthOutgoing, expected);
+  });
+
+  test('Duplicate backup IDs leave the existing ledger untouched', () async {
+    await db.addPlan(draft());
+    final backup = jsonDecode(await db.exportBackup()) as Map<String, dynamic>;
+    (backup['occurrences'] as List).add((backup['occurrences'] as List).first);
+    await expectLater(db.restoreBackup(jsonEncode(backup)), throwsFormatException);
+    expect((await db.allItems()).length, 3);
+  });
+
+  test('Recurring undo protects later paid history', () async {
+    await db.addPlan(draft(kind: PaymentKind.subscription));
+    final first = (await db.allItems()).single;
+    await db.pay(first);
+    final next = (await db.allItems()).last;
+    await db.pay(next);
+    await expectLater(db.undo(first), throwsStateError);
+    expect((await db.allItems()).where((item) => item.isPaid).length, 2);
   });
 
   test('Invalid input is rejected before database mutation', () async {

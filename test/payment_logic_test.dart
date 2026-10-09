@@ -13,6 +13,11 @@ void main() {
     expect(parseMoneyToCents('1250,75'), 125075);
     expect(parseMoneyToCents('1250'), 125000);
     expect(parseMoneyToCents('abc'), null);
+    expect(parseMoneyToCents('1.2,34'), null);
+    expect(parseMoneyToCents('9999999999,99'), 999999999999);
+    expect(parseMoneyToCents('10000000000'), null);
+    expect(parseMoneyToCents('9223372036854775807'), null);
+    expect(parseMoneyToCents('-12,50'), null);
   });
   test('Turk IBAN dogrulama', () {
     expect(isValidIban('TR33 0006 1005 1978 6457 8413 26'), true);

@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite/sqflite.dart' as mobile;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 DatabaseFactory platformDatabaseFactory() {
@@ -7,5 +7,5 @@ DatabaseFactory platformDatabaseFactory() {
     sqfliteFfiInit();
     return databaseFactoryFfi;
   }
-  return databaseFactory;
+  return mobile.databaseFactory;
 }

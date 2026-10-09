@@ -4,8 +4,8 @@ publish_to: none
 version: 1.1.0+2
 
 environment:
-  sdk: '>=3.8.0 <4.0.0'
-  flutter: '>=3.32.0'
+  sdk: '>=3.9.0 <4.0.0'
+  flutter: '>=3.35.0'
 
 dependencies:
   flutter:
@@ -17,6 +17,7 @@ dependencies:
   sqflite_common: ^2.5.4
   sqflite_common_ffi: 2.3.6
   sqflite_common_ffi_web: ^0.4.5
+  sqlite3: '>=2.7.6 <3.0.0'
   sqlite3_flutter_libs: ^0.5.28
   file_picker: ^8.3.7
   path: ^1.9.0
