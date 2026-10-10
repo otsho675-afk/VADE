@@ -23,4 +23,16 @@ python3 scripts/prepare_platforms.py
 flutter pub get
 dart run sqflite_common_ffi_web:setup
 dart run flutter_launcher_icons
+python3 - <<'PY'
+from pathlib import Path
+from xml.etree import ElementTree
+
+path = Path('android/app/src/main/res/values/colors.xml')
+root = ElementTree.parse(path).getroot()
+assert root.tag == 'resources', f'{path}: kok resources olmali'
+colors = {e.attrib.get('name'): (e.text or '').strip() for e in root.findall('color')}
+for name in ('vadesi_splash_background', 'ic_launcher_background'):
+    assert colors.get(name) == '#243F56', f'{path}: {name} rengi gecersiz'
+print('VADESI Android renk kaynaklari dogrulandi.')
+PY
 echo 'Tamamlandi. flutter run ile baslatabilirsiniz.'

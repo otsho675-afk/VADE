@@ -99,6 +99,22 @@ try {
   if ($LASTEXITCODE -ne 0) { throw 'Web SQLite dosyalari hazirlanamadi.' }
   dart run flutter_launcher_icons
   if ($LASTEXITCODE -ne 0) { throw 'Uygulama simgesi olusturulamadi.' }
+  $colorsPath = Join-Path $projectRoot 'android/app/src/main/res/values/colors.xml'
+  try {
+    [xml]$colorsDocument = Get-Content -LiteralPath $colorsPath -Raw -Encoding UTF8
+    if ($colorsDocument.DocumentElement.Name -ne 'resources') {
+      throw 'XML kok etiketi resources degil.'
+    }
+    foreach ($colorName in @('vadesi_splash_background', 'ic_launcher_background')) {
+      $node = $colorsDocument.SelectSingleNode("/resources/color[@name='$colorName']")
+      if ($null -eq $node -or $node.InnerText.Trim() -ne '#243F56') {
+        throw "$colorName bulunamadi veya marka rengi yanlis."
+      }
+    }
+    Write-Host 'VADESI Android renk kaynaklari dogrulandi.'
+  } catch {
+    throw "Android renk XML dosyasi bozuk: $colorsPath. Hata: $_"
+  }
   Write-Host ''
   Write-Host 'HAZIR! Uygulamayi baslatmak icin: flutter run'
   Write-Host 'APK: flutter build apk --release'
