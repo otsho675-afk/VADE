@@ -5,7 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart';
 import 'state/app_store.dart';
 import 'ui/app_theme.dart';
-import 'ui/screens/welcome_page.dart';
+import 'ui/screens/launch_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,7 +52,7 @@ class _VadesiAppState extends State<VadesiApp> {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: _store.themeMode,
-      home: WelcomeGate(store: _store),
+      home: LaunchScreen(store: _store),
     ));
   }
 }
