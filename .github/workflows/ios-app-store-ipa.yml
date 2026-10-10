@@ -70,8 +70,32 @@ jobs:
           profile_path="$sign_dir/app-store.mobileprovision"
           keychain_path="$RUNNER_TEMP/vadesi-signing.keychain-db"
           keychain_password="$(uuidgen)-$(uuidgen)"
-          printf '%s' "$CERT_B64" | base64 -D -o "$cert_path"
-          printf '%s' "$PROFILE_B64" | base64 -D -o "$profile_path"
+          # Decode inside Python, ignoring harmless newlines. Diagnose
+          # which secret is invalid without writing private keys to logs.
+          CERT_FILE="$cert_path" PROFILE_FILE="$profile_path" python3 - <<'PY'
+          import base64
+          import binascii
+          import os
+          from pathlib import Path
+
+          for env_name, secret_name, path_name in (
+              ("CERT_B64", "VADE_IOS_P12_BASE64", "CERT_FILE"),
+              ("PROFILE_B64", "VADE_IOS_PROFILE_BASE64", "PROFILE_FILE"),
+          ):
+              raw = "".join(os.environ[env_name].split())
+              try:
+                  binary = base64.b64decode(raw, validate=True)
+              except (binascii.Error, ValueError):
+                  print(f"::error::Invalid Base64 in {secret_name}. Generate it again from the original file.", flush=True)
+                  raise SystemExit(1)
+              if len(binary) < 100 or binary[0] != 0x30:
+                  print(f"::error::{secret_name} does not contain a valid DER-encoded Apple signing file.", flush=True)
+                  raise SystemExit(1)
+              dest = Path(os.environ[path_name])
+              dest.write_bytes(binary)
+              dest.chmod(0o600)
+              print(f"Decoded {secret_name} successfully.", flush=True)
+          PY
 
           security create-keychain -p "$keychain_password" "$keychain_path"
           security set-keychain-settings -lut 21600 "$keychain_path"
