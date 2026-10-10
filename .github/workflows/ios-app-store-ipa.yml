@@ -128,9 +128,52 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Upload IPA to App Store Connect for TestFlight
+        env:
+          ASC_ISSUER_ID: ${{ secrets.VADE_ASC_API_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.VADE_ASC_API_KEY_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.VADE_ASC_API_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$ASC_ISSUER_ID" && -z "$ASC_KEY_ID" && -z "$ASC_PRIVATE_KEY" ]]; then
+            echo "::warning::Signed IPA saved as an artifact, but not uploaded to TestFlight. Add the three VADE_ASC_API_* GitHub Secrets to enable upload."
+            exit 0
+          fi
+          if [[ -z "$ASC_ISSUER_ID" || -z "$ASC_KEY_ID" || -z "$ASC_PRIVATE_KEY" ]]; then
+            echo "::error::Incomplete App Store Connect API configuration. All three VADE_ASC_API_* Secrets are required."
+            exit 1
+          fi
+          if [[ ! "$ASC_KEY_ID" =~ ^[A-Za-z0-9]{10}$ ]]; then
+            echo "::error::VADE_ASC_API_KEY_ID must be the 10-character App Store Connect API Key ID."
+            exit 1
+          fi
+          if [[ ! "$ASC_ISSUER_ID" =~ ^[0-9a-fA-F-]{36}$ ]]; then
+            echo "::error::VADE_ASC_API_ISSUER_ID must be an App Store Connect Issuer ID (UUID)."
+            exit 1
+          fi
+          if [[ "$ASC_PRIVATE_KEY" != *"BEGIN PRIVATE KEY"* || "$ASC_PRIVATE_KEY" != *"END PRIVATE KEY"* ]]; then
+            echo "::error::VADE_ASC_API_PRIVATE_KEY must contain the full unmodified AuthKey_*.p8 file contents."
+            exit 1
+          fi
+          shopt -s nullglob
+          ipa_files=(build/ios/ipa/*.ipa)
+          if (( ${#ipa_files[@]} != 1 )); then
+            echo "::error::Expected exactly one signed IPA artifact to upload."
+            exit 1
+          fi
+          private_dir="$RUNNER_TEMP/vadesi-asc-private-keys"
+          mkdir -p "$private_dir"
+          chmod 700 "$private_dir"
+          printf '%s\n' "$ASC_PRIVATE_KEY" > "$private_dir/AuthKey_${ASC_KEY_ID}.p8"
+          chmod 600 "$private_dir/AuthKey_${ASC_KEY_ID}.p8"
+          echo "Uploading signed VADE IPA to App Store Connect..."
+          API_PRIVATE_KEYS_DIR="$private_dir" xcrun altool --upload-app --type ios --file "${ipa_files[0]}" --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+          echo "Apple upload accepted. The build may take additional time to appear in TestFlight after processing."
+
       - name: Remove temporary signing assets
         if: always()
         shell: bash
         run: |
           security delete-keychain "$RUNNER_TEMP/vadesi-signing.keychain-db" >/dev/null 2>&1 || true
-          rm -rf "$RUNNER_TEMP/vadesi-signing"
+          rm -rf "$RUNNER_TEMP/vadesi-signing" "$RUNNER_TEMP/vadesi-asc-private-keys"
