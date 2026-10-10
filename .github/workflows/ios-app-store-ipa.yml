@@ -70,8 +70,8 @@ jobs:
           profile_path="$sign_dir/app-store.mobileprovision"
           keychain_path="$RUNNER_TEMP/vadesi-signing.keychain-db"
           keychain_password="$(uuidgen)-$(uuidgen)"
-          printf '%s' "$CERT_B64" | base64 --decode -o "$cert_path"
-          printf '%s' "$PROFILE_B64" | base64 --decode -o "$profile_path"
+          printf '%s' "$CERT_B64" | base64 -D -o "$cert_path"
+          printf '%s' "$PROFILE_B64" | base64 -D -o "$profile_path"
 
           security create-keychain -p "$keychain_password" "$keychain_path"
           security set-keychain-settings -lut 21600 "$keychain_path"
