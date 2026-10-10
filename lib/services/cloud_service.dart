@@ -97,6 +97,18 @@ class CloudService extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  Future<void> resendVerification() async {
+    final current = FirebaseAuth.instance.currentUser;
+    if (current == null) throw StateError('Önce giriş yapın.');
+    await current.sendEmailVerification();
+  }
+
+  Future<void> refreshUser() async {
+    await FirebaseAuth.instance.currentUser?.reload();
+    user = FirebaseAuth.instance.currentUser;
+    _notify();
+  }
+
   Future<void> resetPassword(String email) =>
       FirebaseAuth.instance.sendPasswordResetEmail(email: email.trim());
 

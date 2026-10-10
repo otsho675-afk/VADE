@@ -1,7 +1,7 @@
 name: vadesi
 description: "Taksit, fatura ve alacaklar icin kisisel odeme takip uygulamasi."
 publish_to: none
-version: 1.2.0+6
+version: 1.2.1+7
 
 environment:
   sdk: '>=3.12.0 <4.0.0'
@@ -52,4 +52,11 @@ flutter_launcher_icons:
   remove_alpha_ios: true
   image_path: assets/images/vadesi_mark.png
   min_sdk_android: 23
+  adaptive_icon_background: '#104C46'
+  adaptive_icon_foreground: assets/images/vadesi_mark.png
+  web:
+    generate: true
+    image_path: assets/images/vadesi_mark.png
+    background_color: '#104C46'
+    theme_color: '#104C46'
 

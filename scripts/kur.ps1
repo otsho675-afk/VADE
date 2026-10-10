@@ -47,6 +47,9 @@ try {
 '@
       $xml = $xml.Replace('</application>', $receivers + '    </application>')
     }
+    if (-not $xml.Contains('android.permission.INTERNET')) {
+      $xml = $xml.Replace('<application', "<uses-permission android:name=`"android.permission.INTERNET`" />`n    <application")
+    }
     $xml = $xml.Replace('android:label="vadesi"', 'android:label="VADESİ"')
     [System.IO.File]::WriteAllText($manifest, $xml, (New-Object System.Text.UTF8Encoding $false))
   }

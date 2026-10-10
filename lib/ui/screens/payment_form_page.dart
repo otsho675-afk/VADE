@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import '../../models/payment.dart';
 import '../../state/app_store.dart';
 import '../widgets/common.dart';
+import '../widgets/wheel_date_picker.dart';
+import '../widgets/smart_keyboard.dart';
 
 class PaymentFormPage extends StatefulWidget {
   final AppStore store;
@@ -51,18 +53,19 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
   }
 
   Future<void> _pickDate() async {
-    final date = await showDatePicker(
+    final date = await showWheelDatePicker(
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
       initialDate: _dueDate,
       helpText: 'İlk ödeme tarihini seç',
     );
-    if (date != null) setState(() => _dueDate = date);
+    if (date != null && mounted) setState(() => _dueDate = date);
   }
 
   Future<void> _save() async {
     if (_saving || !_formKey.currentState!.validate()) return;
+    FocusManager.instance.primaryFocus?.unfocus();
     final count = _kind == PaymentKind.installment ? int.parse(_count.text) : 1;
     final draft = PlanDraft(
       title: _title.text.trim(), party: _party.text.trim(),
@@ -93,11 +96,12 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
     final editing = widget.editing != null;
     return Scaffold(
       appBar: AppBar(title: Text(editing ? 'Ödemeyi düzenle' : 'Yeni ödeme ekle')),
+      bottomNavigationBar: const KeyboardDoneBar(),
       body: SafeArea(child: Form(
         key: _formKey,
         child: Center(child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 780),
-          child: ListView(padding: const EdgeInsets.fromLTRB(18, 16, 18, 34), children: [
+          child: ListView(keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag, padding: const EdgeInsets.fromLTRB(18, 16, 18, 34), children: [
             Text('Ödeme türü', style: theme.textTheme.titleMedium),
             const SizedBox(height: 10),
             Wrap(spacing: 8, runSpacing: 8, children: [
@@ -139,6 +143,8 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
                 ],
                 TextFormField(
                   controller: _title,
+                  textInputAction: TextInputAction.next,
+                  onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
                   maxLength: 200,
                   textCapitalization: TextCapitalization.sentences,
                   decoration: InputDecoration(labelText: 'Ödeme adı *',
@@ -147,12 +153,15 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
                 ),
                 const SizedBox(height: 14),
                 TextFormField(controller: _party, maxLength: 200,
+                  textInputAction: TextInputAction.next,
                   textCapitalization: TextCapitalization.words,
                   decoration: InputDecoration(
                     labelText: _direction == PaymentDirection.outgoing ? 'Kime / hangi kuruma?' : 'Kimden alacağım?',
                     hintText: 'Örn. Ahmet Yılmaz veya kurum adı')),
                 const SizedBox(height: 14),
                 TextFormField(controller: _amount,
+                  textInputAction: TextInputAction.next,
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]')), LengthLimitingTextInputFormatter(20)],
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(labelText: 'Tutar (TL) *', prefixText: '₺  ', hintText: '1.250,00'),
                   validator: (v) {
@@ -162,10 +171,11 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
                 if (_kind == PaymentKind.installment) ...[
                   const SizedBox(height: 14),
                   TextFormField(controller: _count,
+                    textInputAction: TextInputAction.next,
                     onChanged: (_) => setState(() {}),
                     enabled: !editing,
                     keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(3)],
                     decoration: const InputDecoration(labelText: 'Toplam taksit sayısı *', hintText: 'Örn. 12'),
                     validator: (v) {
                       final n = int.tryParse(v ?? '');
@@ -201,12 +211,18 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
                 const SizedBox(height: 15),
                 TextFormField(
                   controller: _iban,
+                  keyboardType: TextInputType.visiblePassword,
+                  textInputAction: TextInputAction.next,
+                  autocorrect: false, enableSuggestions: false,
+                  inputFormatters: [IbanInputFormatter()],
                   textCapitalization: TextCapitalization.characters,
                   decoration: const InputDecoration(labelText: 'Alıcı IBAN (isteğe bağlı)', hintText: 'TR...'),
                   validator: (v) => isValidIban(v ?? '') ? null : 'Geçerli bir Türkiye IBAN bilgisi girin.',
                 ),
                 const SizedBox(height: 14),
                 TextFormField(controller: _notes,
+                  keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.newline,
                   textCapitalization: TextCapitalization.sentences,
                   maxLines: 3,
                   maxLength: 5000,
