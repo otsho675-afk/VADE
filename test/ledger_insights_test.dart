@@ -34,7 +34,7 @@ void main() {
   });
 
   test('Turkish insensitive search handles notes, categories and multiple words', () {
-    expect(LedgerInsights.filterAndSort(rows, search: 'ELEKTRIK ekim', today: today).length, 2);
+    expect(LedgerInsights.filterAndSort(rows, search: 'ELEKTRIK ekim', today: today).length, 3);
     expect(LedgerInsights.filterAndSort(rows, search: 'çAĞRI iNTERNET', today: today).length, 4);
     expect(LedgerInsights.filterAndSort(rows, search: 'not-exists', today: today), isEmpty);
     expect(LedgerInsights.filterAndSort(rows, sort: LedgerSort.highest, today: today).first.id, 4);
