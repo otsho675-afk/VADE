@@ -158,12 +158,18 @@ class LocalDatabase {
   Future<void> undo(DueItem occurrence) async {
     final db = await connection;
     await db.transaction((txn) async {
+      // Undo must be a no-op for a missing/already unpaid occurrence. Otherwise
+      // a stale tap could delete later unpaid recurring periods.
+      final current = await txn.query('occurrences', columns: ['paid_at'],
+        where: 'id = ?', whereArgs: [occurrence.id], limit: 1);
+      if (current.isEmpty || current.first['paid_at'] == null) return;
       final laterPaid = Sqflite.firstIntValue(await txn.rawQuery(
         'SELECT COUNT(*) FROM occurrences WHERE plan_id = ? AND sequence > ? AND paid_at IS NOT NULL',
         [occurrence.planId, occurrence.sequence],
       )) ?? 0;
       if (laterPaid > 0) throw StateError('Daha sonraki ödemeler kaydedildi. Önce son ödemeyi geri alın.');
-      await txn.update('occurrences', {'paid_at': null}, where: 'id = ?', whereArgs: [occurrence.id]);
+      await txn.update('occurrences', {'paid_at': null},
+        where: 'id = ? AND paid_at IS NOT NULL', whereArgs: [occurrence.id]);
       if (occurrence.plan.kind.isRecurring) {
         await txn.delete('occurrences',
           where: 'plan_id = ? AND sequence > ? AND paid_at IS NULL',

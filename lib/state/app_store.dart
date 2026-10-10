@@ -125,14 +125,20 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// All open installments, oldest due date first; unlike upcoming, never de-duplicated.
+  List<DueItem> get unpaidItems => items.where((e) => !e.isPaid).toList()
+    ..sort((a, b) {
+      final order = a.dueDate.compareTo(b.dueDate);
+      return order != 0 ? order : a.id.compareTo(b.id);
+    });
+
+  /// One nearest installment per plan for the compact dashboard.
   List<DueItem> get upcoming {
     final map = <int, DueItem>{};
-    for (final item in items) {
-      if (item.isPaid) continue;
+    for (final item in unpaidItems) {
       map.putIfAbsent(item.planId, () => item);
     }
-    final list = map.values.toList()..sort((a, b) => a.dueDate.compareTo(b.dueDate));
-    return list;
+    return map.values.toList()..sort((a, b) => a.dueDate.compareTo(b.dueDate));
   }
 
   List<DueItem> get history => (items.where((e) => e.isPaid).toList()
@@ -154,7 +160,21 @@ class AppStore extends ChangeNotifier {
     e.paidAt!.year == DateTime.now().year && e.paidAt!.month == DateTime.now().month
   ).fold(0, (sum, e) => sum + e.amountCents);
 
-  int get lateCount => upcoming.where((e) => e.isLate).length;
+  /// Count occurrences, not plans: three overdue installments are three missed payments.
+  int get lateCount => unpaidItems.where((e) => e.isLate).length;
+
+  int get lateOutgoingAmount => unpaidItems.where((e) =>
+    e.isLate && e.plan.direction == PaymentDirection.outgoing
+  ).fold<int>(0, (sum, e) => sum + e.amountCents);
+
+  int get next7DaysOutgoing {
+    final today = dateOnly(DateTime.now());
+    final lastDay = today.add(const Duration(days: 7));
+    return unpaidItems.where((e) =>
+      e.plan.direction == PaymentDirection.outgoing &&
+      !dateOnly(e.dueDate).isBefore(today) && dateOnly(e.dueDate).isBefore(lastDay)
+    ).fold<int>(0, (sum, e) => sum + e.amountCents);
+  }
 
   @override
   void notifyListeners() {

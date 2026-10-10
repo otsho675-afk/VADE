@@ -61,6 +61,39 @@ void main() {
     expect(store.monthOutgoing, expected);
   });
 
+  test('Overdue summary counts individual installments and separates incoming amounts', () async {
+    await db.addPlan(draft());
+    final incoming = PlanDraft(
+      title: 'Alacak', party: 'Müşteri', iban: '', note: '',
+      kind: PaymentKind.single, direction: PaymentDirection.incoming,
+      category: InvoiceCategory.other, amountCents: 20000, count: 1,
+      startDate: DateTime(2026, 1, 1),
+    );
+    await db.addPlan(incoming);
+    final store = AppStore(database: db);
+    store.items = await db.allItems();
+    expect(store.upcoming.length, 2);
+    expect(store.unpaidItems.length, 4);
+    expect(store.lateCount, 4);
+    expect(store.lateOutgoingAmount, 3 * 125075);
+    expect(store.next7DaysOutgoing, 0);
+  });
+
+  test('Undo of an unpaid recurrence does not delete later pending periods', () async {
+    await db.addPlan(draft(kind: PaymentKind.subscription));
+    final first = (await db.allItems()).single;
+    await db.pay(first);
+    final second = (await db.allItems()).last;
+    final connection = await db.connection;
+    await connection.insert('occurrences', {
+      'plan_id': first.planId, 'sequence': 3, 'due_date': '2026-03-31',
+      'amount_cents': first.amountCents, 'paid_at': null,
+    });
+    await db.undo(second);
+    expect((await db.allItems()).length, 3);
+    expect((await db.allItems()).where((e) => e.isPaid).length, 1);
+  });
+
   test('Duplicate backup IDs leave the existing ledger untouched', () async {
     await db.addPlan(draft());
     final backup = jsonDecode(await db.exportBackup()) as Map<String, dynamic>;

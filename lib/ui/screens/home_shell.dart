@@ -23,6 +23,7 @@ class _HomeShellState extends State<HomeShell> {
   int _selected = 0;
   String _search = '';
   String _filter = 'Tümü';
+  bool _showAllInstallments = false;
   final _searchController = TextEditingController();
 
   AppStore get store => widget.store;
@@ -228,8 +229,21 @@ class _HomeShellState extends State<HomeShell> {
       return Wrap(spacing: 12, runSpacing: 12, children: [
         SizedBox(width: width, child: SummaryTile(title: 'Beklenen tahsilat', value: formatCompactMoney(store.monthIncoming),
           footer: 'Bu aya kadar alacaklar', icon: Icons.south_west_rounded)),
-        SizedBox(width: width, child: SummaryTile(title: 'Geciken kayıt', value: '${store.lateCount}',
-          footer: store.lateCount == 0 ? 'Her şey yolunda' : 'Kontrol etmen gerekiyor', icon: Icons.schedule_rounded)),
+        SizedBox(width: width, child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: store.lateCount == 0 ? null : () => setState(() {
+            _selected = 1;
+            _filter = 'Gecikenler';
+            _showAllInstallments = true;
+          }),
+          child: SummaryTile(title: 'Geciken kayıt', value: '${store.lateCount}',
+            footer: store.lateCount == 0 ? 'Her şey yolunda' : 'Dokun, geciken taksitleri gör',
+            icon: Icons.schedule_rounded),
+        )),
+        SizedBox(width: width, child: SummaryTile(title: 'Geciken borç', value: formatCompactMoney(store.lateOutgoingAmount),
+          footer: 'Vadesi geçmiş ödenmemiş borçlar', icon: Icons.warning_amber_rounded)),
+        SizedBox(width: width, child: SummaryTile(title: 'Önümüzdeki 7 gün', value: formatCompactMoney(store.next7DaysOutgoing),
+          footer: 'Bugün dahil gelecek 7 günün borçları', icon: Icons.date_range_outlined)),
       ]);
     }),
     if (store.cloud.user == null) ...[
@@ -286,7 +300,15 @@ class _HomeShellState extends State<HomeShell> {
       textInputAction: TextInputAction.search,
       onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
       onChanged: (v) => setState(() => _search = v.trim().toLowerCase()),
-      decoration: const InputDecoration(prefixIcon: Icon(Icons.search_rounded), hintText: 'Ödeme veya kişi ara'),
+      decoration: InputDecoration(
+        prefixIcon: const Icon(Icons.search_rounded),
+        hintText: 'Ödeme veya kişi ara',
+        suffixIcon: _search.isEmpty ? null : IconButton(
+          tooltip: 'Aramayı temizle',
+          onPressed: () { _searchController.clear(); setState(() => _search = ''); },
+          icon: const Icon(Icons.close_rounded),
+        ),
+      ),
     ),
     const SizedBox(height: 10),
     SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
@@ -295,9 +317,18 @@ class _HomeShellState extends State<HomeShell> {
         const SizedBox(width: 8),
       ],
     ])),
-    const SizedBox(height: 18),
+    const SizedBox(height: 7),
+    Row(children: [
+      const Expanded(child: Text('Tüm açık taksitleri ayrı ayrı göster')),
+      Switch.adaptive(
+        value: _showAllInstallments,
+        onChanged: (value) => setState(() => _showAllInstallments = value),
+      ),
+    ]),
+    const SizedBox(height: 12),
     Builder(builder: (context) {
-      final source = _filter == 'Geçmiş' ? store.history : store.upcoming;
+      final source = _filter == 'Geçmiş' ? store.history
+        : (_showAllInstallments || _filter == 'Gecikenler' ? store.unpaidItems : store.upcoming);
       final filtered = source.where((p) {
         final matchesText = _search.isEmpty || p.plan.title.toLowerCase().contains(_search)
           || p.plan.party.toLowerCase().contains(_search);
@@ -311,9 +342,28 @@ class _HomeShellState extends State<HomeShell> {
         };
         return matchesText && matchesFilter;
       }).toList();
-      return Column(children: filtered.isEmpty
-        ? [const Card(child: EmptyView(title: 'Sonuç bulunamadı', message: 'Filtreyi değiştirin veya yeni ödeme ekleyin.', icon: Icons.search_off_rounded))]
-        : [for (final p in filtered) ...[
+      final outstanding = filtered.where((e) => e.plan.direction == PaymentDirection.outgoing)
+        .fold<int>(0, (sum, e) => sum + e.amountCents);
+      return Column(children: [
+        Align(alignment: Alignment.centerLeft, child: Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(_filter == 'Geçmiş' ? '${filtered.length} tamamlanan kayıt'
+            : '${filtered.length} kayıt · ${formatCompactMoney(outstanding)} gösterilen borç',
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        )),
+        if (filtered.isEmpty) ...[
+          const Card(child: EmptyView(title: 'Sonuç bulunamadı',
+            message: 'Arama veya filtre koşullarını değiştirebilirsiniz.', icon: Icons.search_off_rounded)),
+          TextButton.icon(
+            icon: const Icon(Icons.filter_alt_off_outlined),
+            label: const Text('Filtreleri temizle'),
+            onPressed: () { _searchController.clear(); setState(() {
+              _search = '';
+              _filter = 'Tümü';
+              _showAllInstallments = false;
+            }); },
+          ),
+        ] else ...[for (final p in filtered) ...[
             if (_filter == 'Geçmiş')
               Card(child: ListTile(
                 leading: const Icon(Icons.check_circle_outline_rounded),
@@ -324,7 +374,8 @@ class _HomeShellState extends State<HomeShell> {
               ))
             else PaymentRowCard(due: p, onTap: () => _openDetails(p), onPaid: () => _pay(p)),
             const SizedBox(height: 10),
-          ]]);
+          ]],
+      ]);
     }),
   ]));
 
@@ -509,7 +560,7 @@ class _HomeShellState extends State<HomeShell> {
           subtitle: Text('IBAN ve ödeme bilgileri cihazda tutulur; bu sürümde veritabanı şifreli değildir. Telefon ekran kilidini kullanın.')),
       ]))),
     const SizedBox(height: 21),
-    Center(child: Text('VADESİ · 1.2.0',
+    Center(child: Text('VADESİ · 1.2.1',
       style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant))),
   ]));
 }
