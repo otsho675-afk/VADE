@@ -7,14 +7,9 @@ workflows:
       flutter: 3.47.7
       xcode: latest
       cocoapods: default
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: codex/vadesi-platform-upgrade
-          include: true
-          source: true
-      cancel_previous_builds: true
+    # Simulator screenshots are intentionally manual-only. GitHub Actions
+    # already verifies Flutter and iOS on each push, without consuming
+    # additional Codemagic Mac build capacity.
     scripts:
       - name: Prepare dependencies and native assets
         script: |
