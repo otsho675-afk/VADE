@@ -31,6 +31,7 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
       store.dispose();
     });
+  }
 
   testWidgets('Advanced filters and six-month report render on a narrow phone', (tester) async {
     tester.view.physicalSize = const Size(360, 840);
@@ -80,5 +81,4 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     store.dispose();
   });
-  }
 }
