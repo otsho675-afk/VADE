@@ -5,6 +5,7 @@ import 'auth_page.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/wheel_date_picker.dart';
 import '../../models/payment.dart';
+import '../../services/ledger_insights.dart';
 import '../../state/app_store.dart';
 import '../widgets/common.dart';
 import 'payment_detail_page.dart';
@@ -23,6 +24,7 @@ class _HomeShellState extends State<HomeShell> {
   int _selected = 0;
   String _search = '';
   String _filter = 'Tümü';
+  LedgerSort _sort = LedgerSort.nearest;
   bool _showAllInstallments = false;
   final _searchController = TextEditingController();
 
@@ -242,8 +244,12 @@ class _HomeShellState extends State<HomeShell> {
         )),
         SizedBox(width: width, child: SummaryTile(title: 'Geciken borç', value: formatCompactMoney(store.lateOutgoingAmount),
           footer: 'Vadesi geçmiş ödenmemiş borçlar', icon: Icons.warning_amber_rounded)),
-        SizedBox(width: width, child: SummaryTile(title: 'Önümüzdeki 7 gün', value: formatCompactMoney(store.next7DaysOutgoing),
-          footer: 'Bugün dahil gelecek 7 günün borçları', icon: Icons.date_range_outlined)),
+        SizedBox(width: width, child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () => setState(() { _selected = 1; _filter = '7 Gün'; _showAllInstallments = true; }),
+          child: SummaryTile(title: 'Önümüzdeki 7 gün', value: formatCompactMoney(store.next7DaysOutgoing),
+            footer: 'Dokun, bu haftanın ödemelerini gör', icon: Icons.date_range_outlined),
+        )),
       ]);
     }),
     if (store.cloud.user == null) ...[
@@ -263,7 +269,24 @@ class _HomeShellState extends State<HomeShell> {
         ],
       ))),
     ],
-    const SizedBox(height: 27),
+    const SizedBox(height: 17),
+    Wrap(spacing: 8, runSpacing: 8, children: [
+      ActionChip(
+        avatar: const Icon(Icons.today_rounded, size: 18),
+        label: const Text('Bugünün ödemeleri'),
+        onPressed: () => setState(() {
+          _selected = 1;
+          _filter = 'Bugün';
+          _showAllInstallments = true;
+        }),
+      ),
+      ActionChip(
+        avatar: const Icon(Icons.bar_chart_rounded, size: 18),
+        label: const Text('6 aylık nakit akışı'),
+        onPressed: () => setState(() => _selected = 2),
+      ),
+    ]),
+    const SizedBox(height: 22),
     SectionTitle('Sıradaki ödemeler', trailing: TextButton(onPressed: () => setState(() => _selected = 1),
       child: const Text('Tümünü gör'))),
     if (store.upcoming.isEmpty)
@@ -312,11 +335,26 @@ class _HomeShellState extends State<HomeShell> {
     ),
     const SizedBox(height: 10),
     SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
-      for (final f in ['Tümü', 'Taksit', 'Fatura', 'Abonelik', 'Alacaklar', 'Gecikenler', 'Geçmiş']) ...[
+      for (final f in ['Tümü', 'Bugün', '7 Gün', 'Bu ay', 'Gecikenler', 'Borçlar', 'Alacaklar', 'Taksit', 'Fatura', 'Abonelik', 'Tek seferlik', 'Geçmiş']) ...[
         ChoiceChip(label: Text(f), selected: _filter == f, onSelected: (_) => setState(() => _filter = f)),
         const SizedBox(width: 8),
       ],
     ])),
+    const SizedBox(height: 12),
+    Wrap(spacing: 8, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+      const Text('Sırala:'),
+      DropdownButton<LedgerSort>(
+        value: _sort,
+        items: const [
+          DropdownMenuItem(value: LedgerSort.nearest, child: Text('En yakın vade')),
+          DropdownMenuItem(value: LedgerSort.latest, child: Text('En uzak vade')),
+          DropdownMenuItem(value: LedgerSort.highest, child: Text('En yüksek tutar')),
+          DropdownMenuItem(value: LedgerSort.lowest, child: Text('En düşük tutar')),
+          DropdownMenuItem(value: LedgerSort.name, child: Text('Ada göre')),
+        ],
+        onChanged: (value) { if (value != null) setState(() => _sort = value); },
+      ),
+    ]),
     const SizedBox(height: 7),
     Row(children: [
       const Expanded(child: Text('Tüm açık taksitleri ayrı ayrı göster')),
@@ -327,21 +365,13 @@ class _HomeShellState extends State<HomeShell> {
     ]),
     const SizedBox(height: 12),
     Builder(builder: (context) {
-      final source = _filter == 'Geçmiş' ? store.history
-        : (_showAllInstallments || _filter == 'Gecikenler' ? store.unpaidItems : store.upcoming);
-      final filtered = source.where((p) {
-        final matchesText = _search.isEmpty || p.plan.title.toLowerCase().contains(_search)
-          || p.plan.party.toLowerCase().contains(_search);
-        final matchesFilter = switch (_filter) {
-          'Taksit' => p.plan.kind == PaymentKind.installment,
-          'Fatura' => p.plan.kind == PaymentKind.invoice,
-          'Abonelik' => p.plan.kind == PaymentKind.subscription,
-          'Alacaklar' => p.plan.direction == PaymentDirection.incoming,
-          'Gecikenler' => p.isLate,
-          _ => true,
-        };
-        return matchesText && matchesFilter;
-      }).toList();
+      final showEveryPeriod = _showAllInstallments ||
+        const ['Gecikenler', 'Bugün', '7 Gün', 'Bu ay'].contains(_filter);
+      final source = _filter == 'Geçmiş' ? store.history :
+        (showEveryPeriod ? store.unpaidItems : store.upcoming);
+      final filtered = LedgerInsights.filterAndSort(
+        source, filter: _filter, search: _search, sort: _sort,
+      );
       final outstanding = filtered.where((e) => e.plan.direction == PaymentDirection.outgoing)
         .fold<int>(0, (sum, e) => sum + e.amountCents);
       return Column(children: [
@@ -361,6 +391,7 @@ class _HomeShellState extends State<HomeShell> {
               _search = '';
               _filter = 'Tümü';
               _showAllInstallments = false;
+              _sort = LedgerSort.nearest;
             }); },
           ),
         ] else ...[for (final p in filtered) ...[
