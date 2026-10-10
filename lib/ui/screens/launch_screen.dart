@@ -84,3 +84,4 @@ class _LaunchScreenState extends State<LaunchScreen>
             ),
           ),
   );
+}
