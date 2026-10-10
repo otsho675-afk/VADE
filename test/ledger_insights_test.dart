@@ -40,6 +40,18 @@ void main() {
     expect(LedgerInsights.filterAndSort(rows, sort: LedgerSort.highest, today: today).first.id, 4);
   });
 
+  test('Payment history keeps most recently paid records first', () {
+    final earlier = DueItem(id: 20, planId: debt.id, sequence: 4,
+      dueDate: DateTime(2026, 9, 15), amountCents: 10000,
+      paidAt: DateTime(2026, 10, 1), plan: debt);
+    final later = DueItem(id: 21, planId: debt.id, sequence: 5,
+      dueDate: DateTime(2026, 8, 15), amountCents: 12000,
+      paidAt: DateTime(2026, 10, 9), plan: debt);
+    final result = LedgerInsights.filterAndSort([earlier, later],
+      filter: 'Geçmiş', today: today);
+    expect(result.map((item) => item.id), [21, 20]);
+  });
+
   test('Forecast excludes paid and limits recurring periods to existing records', () {
     final months = LedgerInsights.forecast(rows, today: today, months: 3);
     expect(months.length, 3);

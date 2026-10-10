@@ -62,6 +62,11 @@ class LedgerInsights {
       matchesFilter(item, filter, today: today) && matchesSearch(item, search)
     ).toList();
     results.sort((a, b) {
+      // Completed payments default to most recently paid, regardless of due date.
+      if (sort == LedgerSort.nearest && filter == 'Geçmiş') {
+        final order = b.paidAt!.compareTo(a.paidAt!);
+        return order != 0 ? order : b.id.compareTo(a.id);
+      }
       final comparison = switch (sort) {
         LedgerSort.nearest => a.dueDate.compareTo(b.dueDate),
         LedgerSort.latest => b.dueDate.compareTo(a.dueDate),

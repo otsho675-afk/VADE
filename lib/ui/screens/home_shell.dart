@@ -654,7 +654,7 @@ class _HomeShellState extends State<HomeShell> {
           subtitle: Text('IBAN ve ödeme bilgileri cihazda tutulur; bu sürümde veritabanı şifreli değildir. Telefon ekran kilidini kullanın.')),
       ]))),
     const SizedBox(height: 21),
-    Center(child: Text('VADESİ · 1.2.2',
+    Center(child: Text('VADESİ · 1.3.0',
       style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant))),
   ]));
 }
