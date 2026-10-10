@@ -413,6 +413,20 @@ class _HomeShellState extends State<HomeShell> {
   Widget _reportsPage() {
     final all = store.items;
     final historical = store.history;
+    final cashFlow = LedgerInsights.forecast(store.items);
+    final overdueIncoming = LedgerInsights.overdueIncoming(store.items);
+    final outgoingOpen = store.unpaidItems.where((p) =>
+      p.plan.direction == PaymentDirection.outgoing
+    ).fold<int>(0, (sum, p) => sum + p.amountCents);
+    final chartMax = cashFlow.fold<int>(0, (maxValue, month) {
+      final candidate = month.outgoingCents > month.incomingCents
+        ? month.outgoingCents : month.incomingCents;
+      return candidate > maxValue ? candidate : maxValue;
+    });
+    const monthNames = [
+      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+    ];
     final outgoingPaid = historical.where((p) => p.plan.direction == PaymentDirection.outgoing)
       .fold<int>(0, (value, item) => value + item.amountCents);
     final received = historical.where((p) => p.plan.direction == PaymentDirection.incoming)
@@ -420,7 +434,7 @@ class _HomeShellState extends State<HomeShell> {
     final futureInstallments = all.where((p) => !p.isPaid && p.plan.isFinite)
       .fold<int>(0, (sum, p) => sum + (p.plan.direction == PaymentDirection.outgoing ? p.amountCents : 0));
     final categories = <String, int>{};
-    for (final p in store.upcoming.where((p) => p.plan.direction == PaymentDirection.outgoing)) {
+    for (final p in store.unpaidItems.where((p) => p.plan.direction == PaymentDirection.outgoing)) {
       final key = p.plan.kind == PaymentKind.invoice ? p.plan.category.label : p.plan.kind.label;
       categories[key] = (categories[key] ?? 0) + p.amountCents;
     }
@@ -436,15 +450,64 @@ class _HomeShellState extends State<HomeShell> {
         final w = (c.maxWidth - 12 * (cols - 1)) / cols;
         return Wrap(spacing: 12, runSpacing: 12, children: [
           SizedBox(width: w, child: SummaryTile(title: 'Kaydedilen ödemeler', value: formatCompactMoney(outgoingPaid),
-            footer: '${historical.length} tamamlanan kayıt', icon: Icons.check_circle_outline)),
+            footer: '${historical.where((p) => p.plan.direction == PaymentDirection.outgoing).length} ödeme', icon: Icons.check_circle_outline)),
           SizedBox(width: w, child: SummaryTile(title: 'Tahsil edilen', value: formatCompactMoney(received),
             footer: 'Alacak geçmişi', icon: Icons.call_received_rounded)),
           SizedBox(width: w, child: SummaryTile(title: 'Kalan planlı borç', value: formatCompactMoney(futureInstallments),
             footer: 'Sınırlı taksit ve tek seferlik ödemeler', icon: Icons.calendar_month_outlined)),
+          SizedBox(width: w, child: SummaryTile(title: 'Toplam bekleyen borç', value: formatCompactMoney(outgoingOpen),
+            footer: 'Kayıtlı tüm ödenmemiş dönemler', icon: Icons.account_balance_wallet_outlined)),
+          SizedBox(width: w, child: SummaryTile(title: 'Geciken tahsilatlar', value: formatCompactMoney(overdueIncoming),
+            footer: 'Vadesi geçmiş alacak toplamı', icon: Icons.schedule_send_outlined)),
         ]);
       }),
       const SizedBox(height: 23),
-      const SectionTitle('Yaklaşan borçların dağılımı'),
+      const SectionTitle('Önümüzdeki 6 ay · Nakit akışı'),
+      const SizedBox(height: 8),
+      Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const Text('Yalnızca ödenmemiş ve kayıtlı dönemler gösterilir. Geçmiş gecikmeler bu tahmine dahil değildir.'),
+          const SizedBox(height: 16),
+          for (final month in cashFlow) ...[
+            Row(children: [
+              Expanded(child: Text('${monthNames[month.month.month - 1]} ${month.month.year}',
+                style: Theme.of(context).textTheme.titleMedium)),
+              Text('Net: ${formatCompactMoney(month.netCents)}',
+                style: Theme.of(context).textTheme.bodySmall),
+            ]),
+            const SizedBox(height: 8),
+            Row(children: [
+              const SizedBox(width: 52, child: Text('Borç')),
+              Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: chartMax == 0 ? 0 : month.outgoingCents / chartMax,
+                  minHeight: 9,
+                  backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: .08),
+                ))),
+              const SizedBox(width: 10),
+              SizedBox(width: 94, child: Text(formatCompactMoney(month.outgoingCents),
+                textAlign: TextAlign.right, maxLines: 1, overflow: TextOverflow.ellipsis)),
+            ]),
+            const SizedBox(height: 6),
+            Row(children: [
+              const SizedBox(width: 52, child: Text('Alacak')),
+              Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: chartMax == 0 ? 0 : month.incomingCents / chartMax,
+                  color: Theme.of(context).colorScheme.tertiary,
+                  minHeight: 9,
+                  backgroundColor: Theme.of(context).colorScheme.tertiary.withValues(alpha: .08),
+                ))),
+              const SizedBox(width: 10),
+              SizedBox(width: 94, child: Text(formatCompactMoney(month.incomingCents),
+                textAlign: TextAlign.right, maxLines: 1, overflow: TextOverflow.ellipsis)),
+            ]),
+            const SizedBox(height: 16),
+          ],
+        ],
+      ))),
+      const SizedBox(height: 23),
+      const SectionTitle('Bekleyen borçların türlere göre dağılımı'),
       if (sortedCategories.isEmpty)
         const Card(child: EmptyView(title: 'Rapor için kayıt yok', message: 'Ödeme ekledikçe dağılım burada gösterilir.', icon: Icons.pie_chart_outline))
       else Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(children: [
