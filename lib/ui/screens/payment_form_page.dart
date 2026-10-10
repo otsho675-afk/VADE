@@ -90,6 +90,48 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
     }
   }
 
+  Widget _sectionHeading(BuildContext context, IconData icon,
+    String title, String subtitle) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(children: [
+      Container(width: 43, height: 43,
+        decoration: BoxDecoration(
+          color: scheme.primary.withValues(alpha: .10),
+          borderRadius: BorderRadius.circular(13)),
+        child: Icon(icon, size: 23, color: scheme.primary)),
+      const SizedBox(width: 12),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          fontSize: 16, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 3),
+        Text(subtitle, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+      ])),
+    ]);
+  }
+
+  Widget _formLabel(BuildContext context, String label) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text(label, style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+      fontWeight: FontWeight.w700)),
+  );
+
+  Widget _formHint(BuildContext context, String text) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(13),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(13),
+        color: scheme.primary.withValues(alpha: .07)),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(Icons.info_outline_rounded, color: scheme.primary, size: 19),
+        const SizedBox(width: 9),
+        Expanded(child: Text(text, style: TextStyle(
+          color: scheme.onSurfaceVariant, fontSize: 12, height: 1.45))),
+      ]),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -205,56 +247,69 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
               ),
               const SizedBox(height: 23),
             ],
-            Card(child: Padding(padding: const EdgeInsets.all(17), child: Column(
+            Card(child: Padding(padding: const EdgeInsets.all(19), child: Column(
               crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Ödeme bilgileri', style: theme.textTheme.titleMedium),
-                const SizedBox(height: 15),
+                _sectionHeading(context, Icons.receipt_long_outlined,
+                  'Ödeme bilgileri', 'Planınızın temel bilgilerini girin.'),
+                const SizedBox(height: 22),
                 if (_kind == PaymentKind.invoice) ...[
                   DropdownButtonFormField<InvoiceCategory>(
                     initialValue: _category,
-                    decoration: const InputDecoration(labelText: 'Fatura kategorisi'),
+                    decoration: const InputDecoration(
+                      labelText: 'Fatura kategorisi',
+                      prefixIcon: Icon(Icons.category_outlined)),
                     items: [for (final c in InvoiceCategory.values) DropdownMenuItem(value: c,
                       child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(c.icon, size: 18), const SizedBox(width: 8), Text(c.label)]))],
                     onChanged: (v) => setState(() => _category = v ?? _category),
                   ),
                   const SizedBox(height: 14),
                 ],
+                _formLabel(context, 'Ödeme adı *'),
                 TextFormField(
                   controller: _title,
                   textInputAction: TextInputAction.next,
                   onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
                   maxLength: 200,
                   textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(labelText: 'Ödeme adı *',
-                    hintText: _kind == PaymentKind.invoice ? 'Örn. Ev elektrik faturası' : 'Örn. Telefon taksiti'),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.description_outlined),
+                    hintText: _kind == PaymentKind.invoice
+                      ? 'Örn. Ev elektrik faturası' : 'Örn. Telefon taksiti'),
                   validator: (v) => (v?.trim().isEmpty ?? true) ? 'Ödeme adı girin.' : null,
                 ),
                 const SizedBox(height: 14),
+                _formLabel(context, _direction == PaymentDirection.outgoing
+                  ? 'Kime / hangi kuruma?' : 'Kimden alacağım?'),
                 TextFormField(controller: _party, maxLength: 200,
                   textInputAction: TextInputAction.next,
                   textCapitalization: TextCapitalization.words,
-                  decoration: InputDecoration(
-                    labelText: _direction == PaymentDirection.outgoing ? 'Kime / hangi kuruma?' : 'Kimden alacağım?',
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.person_outline_rounded),
                     hintText: 'Örn. Ahmet Yılmaz veya kurum adı')),
                 const SizedBox(height: 14),
+                _formLabel(context, 'Tutar (TL) *'),
                 TextFormField(controller: _amount,
                   textInputAction: TextInputAction.next,
                   inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]')), LengthLimitingTextInputFormatter(20)],
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Tutar (TL) *', prefixText: '₺  ', hintText: '1.250,00'),
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.currency_lira_rounded),
+                    hintText: '1.250,00'),
                   validator: (v) {
                     final cents = parseMoneyToCents(v ?? '');
                     return cents == null || cents <= 0 ? 'Geçerli, sıfırdan büyük bir tutar girin.' : null;
                   }),
                 if (_kind == PaymentKind.installment) ...[
                   const SizedBox(height: 14),
+                  _formLabel(context, 'Toplam taksit sayısı *'),
                   TextFormField(controller: _count,
                     textInputAction: TextInputAction.next,
                     onChanged: (_) => setState(() {}),
                     enabled: !editing,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(3)],
-                    decoration: const InputDecoration(labelText: 'Toplam taksit sayısı *', hintText: 'Örn. 12'),
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.layers_outlined), hintText: 'Örn. 12'),
                     validator: (v) {
                       final n = int.tryParse(v ?? '');
                       return n == null || n < 1 || n > 240 ? '1 ile 240 arasında taksit sayısı girin.' : null;
@@ -262,31 +317,46 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
                 ],
                 if (!editing) ...[
                   const SizedBox(height: 14),
-                  Card(child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                    leading: const Icon(Icons.event_outlined),
-                    title: const Text('İlk son ödeme tarihi'),
-                    subtitle: Text(formatDate(_dueDate)),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: _pickDate,
-                  )),
+                  _formLabel(context, 'İlk son ödeme tarihi'),
+                  Material(
+                    color: scheme.primary.withValues(alpha: .07),
+                    borderRadius: BorderRadius.circular(14),
+                    child: InkWell(
+                      key: const Key('payment-date-picker'),
+                      onTap: _pickDate,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Padding(padding: const EdgeInsets.all(13), child: Row(children: [
+                        Icon(Icons.calendar_month_outlined, color: scheme.primary, size: 23),
+                        const SizedBox(width: 12),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text('İlk son ödeme tarihi', style: TextStyle(
+                            color: scheme.onSurfaceVariant, fontSize: 12)),
+                          const SizedBox(height: 3),
+                          Text(formatDate(_dueDate), style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800, fontSize: 16)),
+                        ])),
+                        Icon(Icons.chevron_right_rounded, color: scheme.primary),
+                      ])),
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  Text(
+                  _formHint(context,
                     _kind == PaymentKind.installment
                       ? 'Her ay aynı gün için ${_count.text} taksit planlanır. Ayda o gün yoksa ayın son günü kullanılır.'
                       : _kind.isRecurring
                         ? 'Ödendi olarak işaretlediğinizde gelecek ayın ödemesi otomatik oluşturulur.'
                         : 'Bu ödeme tek seferlik olarak oluşturulur.',
-                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
                   ),
                 ],
               ],
             ))),
             const SizedBox(height: 14),
-            Card(child: Padding(padding: const EdgeInsets.all(17), child: Column(
+            Card(child: Padding(padding: const EdgeInsets.all(19), child: Column(
               crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Havale bilgileri ve not', style: theme.textTheme.titleMedium),
-                const SizedBox(height: 15),
+                _sectionHeading(context, Icons.account_balance_outlined,
+                  'Havale bilgileri ve not', 'İsteğe bağlı ek bilgiler.'),
+                const SizedBox(height: 22),
+                _formLabel(context, 'Alıcı IBAN (isteğe bağlı)'),
                 TextFormField(
                   controller: _iban,
                   keyboardType: TextInputType.visiblePassword,
@@ -294,17 +364,22 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
                   autocorrect: false, enableSuggestions: false,
                   inputFormatters: [IbanInputFormatter()],
                   textCapitalization: TextCapitalization.characters,
-                  decoration: const InputDecoration(labelText: 'Alıcı IBAN (isteğe bağlı)', hintText: 'TR...'),
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.account_balance_outlined),
+                    hintText: 'TR00 0000 0000 0000 0000 0000 00'),
                   validator: (v) => isValidIban(v ?? '') ? null : 'Geçerli bir Türkiye IBAN bilgisi girin.',
                 ),
                 const SizedBox(height: 14),
+                _formLabel(context, 'Açıklama (isteğe bağlı)'),
                 TextFormField(controller: _notes,
                   keyboardType: TextInputType.multiline,
                   textInputAction: TextInputAction.newline,
                   textCapitalization: TextCapitalization.sentences,
                   maxLines: 3,
                   maxLength: 5000,
-                  decoration: const InputDecoration(labelText: 'Açıklama (isteğe bağlı)', hintText: 'Ödeme hakkında notlarınız')),
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.notes_outlined),
+                    hintText: 'Ödeme hakkında notlarınız')),
               ],
             ))),
             if (editing) ...[
