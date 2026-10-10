@@ -94,38 +94,116 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final editing = widget.editing != null;
+    final scheme = theme.colorScheme;
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
     return Scaffold(
-      appBar: AppBar(title: Text(editing ? 'Ödemeyi düzenle' : 'Yeni ödeme ekle')),
-      bottomNavigationBar: const KeyboardDoneBar(),
-      body: SafeArea(child: Form(
+      appBar: AppBar(title: Text(editing ? 'Ödemeyi düzenle' : 'Yeni ödeme ekle',
+        style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
+      bottomNavigationBar: Column(mainAxisSize: MainAxisSize.min, children: [
+        const KeyboardDoneBar(),
+        if (!keyboardOpen) SafeArea(top: false, child: Container(
+          decoration: BoxDecoration(color: scheme.surface,
+            border: Border(top: BorderSide(color: scheme.outlineVariant))),
+          padding: const EdgeInsets.fromLTRB(18, 11, 18, 11),
+          child: Center(child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 780),
+            child: SizedBox(width: double.infinity, height: 54,
+              child: FilledButton.icon(
+                onPressed: _saving ? null : _save,
+                icon: _saving ? SizedBox(width: 18, height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: scheme.onPrimary))
+                  : const Icon(Icons.check_rounded),
+                label: Text(editing ? 'Değişiklikleri kaydet' : 'Ödeme planını oluştur'),
+              ),
+            ),
+          )),
+        )),
+      ]),
+      body: SafeArea(bottom: false, child: Form(
         key: _formKey,
         child: Center(child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 780),
-          child: ListView(keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag, padding: const EdgeInsets.fromLTRB(18, 16, 18, 34), children: [
-            Text('Ödeme türü', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 10),
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              for (final kind in PaymentKind.values)
-                ChoiceChip(
-                  label: Text(kind.label),
-                  avatar: Icon(kind.icon, size: 17),
-                  selected: _kind == kind,
-                  onSelected: editing ? null : (_) => setState(() => _kind = kind),
-                ),
-            ]),
-            const SizedBox(height: 16),
+          child: ListView(keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag, padding: const EdgeInsets.fromLTRB(16, 16, 16, 26), children: [
+            Text('Ödeme türü', style: theme.textTheme.titleMedium?.copyWith(
+              fontSize: 16, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            Text('Oluşturmak istediğiniz ödeme planını seçin.',
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+            const SizedBox(height: 12),
+            LayoutBuilder(builder: (context, box) {
+              final columns = box.maxWidth >= 610 ? 4 : 2;
+              const gap = 9.0;
+              final width = (box.maxWidth - (columns - 1) * gap) / columns;
+              return Wrap(spacing: gap, runSpacing: gap, children: [
+                for (final kind in PaymentKind.values)
+                  SizedBox(width: width, child: Semantics(
+                    selected: _kind == kind, button: true,
+                    child: Material(color: Colors.transparent, child: InkWell(
+                      onTap: editing ? null : () => setState(() => _kind = kind),
+                      borderRadius: BorderRadius.circular(14),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 160),
+                        height: 55,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          color: _kind == kind ? scheme.primary.withValues(alpha: .12) : scheme.surface,
+                          border: Border.all(color: _kind == kind
+                            ? scheme.primary.withValues(alpha: .45) : scheme.outlineVariant),
+                        ),
+                        child: Row(children: [
+                          Icon(kind.icon, size: 18, color: scheme.primary),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(kind.label, maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12.5,
+                              fontWeight: _kind == kind ? FontWeight.w800 : FontWeight.w600))),
+                        ]),
+                      ),
+                    )),
+                  )),
+              ]);
+            }),
+            const SizedBox(height: 24),
             if (!editing) ...[
-              Text('İşlem yönü', style: theme.textTheme.titleMedium),
-              const SizedBox(height: 7),
-              SegmentedButton<PaymentDirection>(
-                segments: const [
-                  ButtonSegment(value: PaymentDirection.outgoing, icon: Icon(Icons.north_east), label: Text('Ödeyeceğim')),
-                  ButtonSegment(value: PaymentDirection.incoming, icon: Icon(Icons.south_west), label: Text('Alacağım')),
-                ],
-                selected: {_direction},
-                onSelectionChanged: (v) => setState(() => _direction = v.first),
+              Text('İşlem yönü', style: theme.textTheme.titleMedium?.copyWith(
+                fontSize: 16, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              Text('Bu kayıt borç mu, alacak mı?',
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+              const SizedBox(height: 11),
+              Container(padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(16),
+                  color: scheme.surface, border: Border.all(color: scheme.outlineVariant)),
+                child: Row(children: [
+                  for (final direction in PaymentDirection.values)
+                    Expanded(child: Material(color: Colors.transparent, child: InkWell(
+                      onTap: () => setState(() => _direction = direction),
+                      borderRadius: BorderRadius.circular(12),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 160),
+                        height: 44,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: _direction == direction ? scheme.primary : Colors.transparent),
+                        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Icon(_direction == direction ? Icons.check_circle_rounded
+                            : direction == PaymentDirection.outgoing
+                              ? Icons.north_east_rounded : Icons.south_west_rounded,
+                            size: 17, color: _direction == direction
+                              ? scheme.onPrimary : scheme.onSurfaceVariant),
+                          const SizedBox(width: 7),
+                          Flexible(child: Text(direction == PaymentDirection.outgoing
+                            ? 'Ödeyeceğim' : 'Alacağım', maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontWeight: FontWeight.w700,
+                              color: _direction == direction ? scheme.onPrimary : scheme.onSurface))),
+                        ]),
+                      ),
+                    ))),
+                ]),
               ),
-              const SizedBox(height: 17),
+              const SizedBox(height: 23),
             ],
             Card(child: Padding(padding: const EdgeInsets.all(17), child: Column(
               crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -234,11 +312,7 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
               Text('Düzenleme sırasında mevcut taksit sayısı ve tarih planı korunur. Yeni tutar yalnızca ödenmemiş kayıtlara uygulanır.',
                 style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12)),
             ],
-            const SizedBox(height: 22),
-            FilledButton.icon(onPressed: _saving ? null : _save,
-              icon: _saving ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.check_rounded),
-              label: Text(editing ? 'Değişiklikleri kaydet' : 'Ödeme planını oluştur')),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
           ]),
         )),
       )),
