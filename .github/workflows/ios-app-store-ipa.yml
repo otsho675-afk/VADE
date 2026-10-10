@@ -34,7 +34,7 @@ jobs:
           done
 
       - name: Checkout latest VADE development code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: codex/vadesi-platform-upgrade
           persist-credentials: false
@@ -121,7 +121,7 @@ jobs:
           ls -lh build/ios/ipa/*.ipa
 
       - name: Downloadable App Store IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: VADE-App-Store-Signed-IPA
           path: build/ios/ipa/*.ipa
