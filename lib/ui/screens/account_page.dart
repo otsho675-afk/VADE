@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../state/app_store.dart';
@@ -21,14 +22,29 @@ class _AccountPageState extends State<AccountPage> {
   @override
   void initState() {
     super.initState();
-    store.purchases.loadProducts();
+    if (CloudConfig.premiumEnabled) store.purchases.loadProducts();
   }
 
   Future<void> _run(Future<void> Function() action) async {
     if (_busy) return;
     setState(() => _busy = true);
     try { await action(); }
-    catch (_) {
+    on FirebaseAuthException catch (error) {
+      final message = switch (error.code) {
+        'email-already-in-use' => 'Bu e-posta zaten kayıtlı. Giriş yapın veya şifrenizi yenileyin.',
+        'invalid-email' => 'Geçerli bir e-posta adresi girin.',
+        'weak-password' => 'Şifreniz en az 6 karakter olmalı.',
+        'invalid-credential' || 'wrong-password' || 'user-not-found' => 'E-posta veya şifre hatalı.',
+        'network-request-failed' => 'İnternet bağlantısı kurulamadı. Bağlantınızı kontrol edip yeniden deneyin.',
+        'operation-not-allowed' => 'E-posta ile kayıt hizmeti henüz açılmamış. Uygulama desteğiyle iletişime geçin.',
+        'too-many-requests' => 'Çok fazla deneme yapıldı. Bir süre sonra tekrar deneyin.',
+        'user-disabled' => 'Bu hesap devre dışı bırakılmış.',
+        _ => 'Hesap işlemi tamamlanamadı (${error.code}). Lütfen yeniden deneyin.',
+      };
+      if (mounted) showError(context, message);
+    } on FormatException catch (error) {
+      if (mounted) showError(context, error.message);
+    } catch (_) {
       if (mounted) showError(context, 'İşlem tamamlanamadı. Bağlantınızı, hesap bilgilerinizi ve üyeliğinizi kontrol edin.');
     } finally { if (mounted) setState(() => _busy = false); }
   }
@@ -90,7 +106,7 @@ class _AccountPageState extends State<AccountPage> {
       final purchases = store.purchases;
       final legalReady = CloudConfig.privacyUrl.startsWith('https://') &&
           CloudConfig.termsUrl.startsWith('https://');
-      return Scaffold(appBar: AppBar(title: const Text('Hesabım ve Premium')),
+      return Scaffold(appBar: AppBar(title: Text(CloudConfig.premiumEnabled ? 'Hesabım ve Premium' : 'Hesabım')),
         body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 680),
           child: ListView(padding: const EdgeInsets.all(20), children: [
             if (!cloud.ready) const Card(child: Padding(padding: EdgeInsets.all(16),
@@ -108,23 +124,24 @@ class _AccountPageState extends State<AccountPage> {
               Wrap(spacing: 12, children: [
                 FilledButton(onPressed: _busy ? null : () => _run(() =>
                   cloud.signIn(_email.text, _password.text)), child: const Text('Giriş yap')),
-                OutlinedButton(onPressed: _busy || !legalReady ? null : () => _run(() async {
+                OutlinedButton(onPressed: _busy ? null : () => _run(() async {
                   await cloud.signIn(_email.text, _password.text, register: true);
                   _password.clear();
-                  if (context.mounted) showSuccess(context, 'Hesap oluşturuldu. Doğrulama e-postanızı kontrol edin.');
+                  if (context.mounted) showSuccess(context, cloud.error ?? 'Hesap oluşturuldu. Doğrulama e-postanızı kontrol edin.');
                 }), child: const Text('Hesap oluştur')),
                 TextButton(onPressed: _busy ? null : () => _run(() async {
                   await cloud.resetPassword(_email.text);
                   if (context.mounted) showSuccess(context, 'Şifre yenileme isteği gönderildi.');
                 }), child: const Text('Şifremi unuttum')),
               ]),
-              const Text('Hesap oluşturarak aşağıdaki kullanım koşullarını kabul edersiniz.'),
+              if (legalReady) const Text('Hesap oluşturarak aşağıdaki kullanım koşullarını kabul edersiniz.'),
             ],
             if (cloud.user != null) ...[
               ListTile(contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.account_circle),
                 title: Text(cloud.user!.email ?? 'Hesabım'),
                 subtitle: Text(cloud.premium ? 'Premium aktif' : 'Ücretsiz üyelik')),
+              if (CloudConfig.premiumEnabled) ...[
               const Text('Premium: cihazlar arasında isteğe bağlı bulut yedekleme. '
                 'Yerel ödeme takibi ve dosya yedekleme ücretsizdir.'),
               const SizedBox(height: 12),
@@ -156,6 +173,7 @@ class _AccountPageState extends State<AccountPage> {
                   child: const Text('Apple abonelikleri')),
               ]),
               const Divider(),
+              ],
               TextButton(onPressed: _busy ? null : () => _run(cloud.signOut), child: const Text('Çıkış yap')),
               TextButton(onPressed: _busy ? null : () => _run(_delete), child: const Text('Hesabımı sil')),
             ],

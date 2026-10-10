@@ -1,8 +1,8 @@
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
-import {getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
+import {getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import {getFirestore, collection, query, orderBy, limit, startAfter, getDocs, getDoc, doc, getCountFromServer, where, Timestamp} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 import {getDatabase, ref, onValue} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js';
-import {getFunctions, httpsCallable} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-functions.js';
+
 const $ = id => document.getElementById(id);
 const config = window.VADESI_CONFIG;
 let cursor, presence = {}, visibleUsers = [], disconnect, session = 0;
@@ -26,7 +26,7 @@ if (!config?.apiKey) {
   $('login').hidden = true;
 } else {
   const app = initializeApp(config), auth = getAuth(app), db = getFirestore(app);
-  const functions = getFunctions(app, config.region ?? 'europe-west1');
+
   const fail = error => { $('status').textContent = 'İşlem başarısız: ' + (error.code ?? error.message); };
   async function loadUsers(next = false) {
     const currentSession = session;
@@ -63,20 +63,17 @@ if (!config?.apiKey) {
     try { await signInWithEmailAndPassword(auth, $('email').value.trim(), $('password').value); $('password').value = ''; }
     catch(error) { fail(error); }
   };
+  $('reset-password').onclick = async () => {
+    const email = $('email').value.trim();
+    if (!email) { $('status').textContent = 'Önce e-posta adresinizi yazın.'; return; }
+    try {
+      await sendPasswordResetEmail(auth, email);
+      $('status').textContent = 'Bu adres kayıtlıysa şifre belirleme bağlantısı gönderildi. E-postanızı kontrol edin.';
+    } catch (error) { fail(error); }
+  };
   $('logout').onclick = () => signOut(auth).catch(fail);
   $('refresh').onclick = () => refresh().catch(fail);
   $('next').onclick = () => loadUsers(true).catch(fail);
-  $('announcement').onsubmit = async event => {
-    event.preventDefault();
-    if (!confirm('Bu duyuru izin veren bütün cihazlara gönderilecek. Devam edilsin mi?')) return;
-    const button = event.target.querySelector('button');
-    button.disabled = true;
-    try {
-      const response = await httpsCallable(functions,'sendAnnouncement')({title:$('title').value,body:$('body').value});
-      $('status').textContent = 'Bildirim sağlayıcısına iletildi: ' + response.data.id;
-    } catch(error) { fail(error); }
-    finally { button.disabled = false; }
-  };
   onAuthStateChanged(auth, async user => {
     ++session; disconnect?.(); presence = {}; visibleUsers = []; cursor = null;
     $('panel').hidden = true; $('login').hidden = false;

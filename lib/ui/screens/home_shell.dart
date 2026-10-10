@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'account_page.dart';
 import '../../models/payment.dart';
@@ -213,9 +214,9 @@ class _HomeShellState extends State<HomeShell> {
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Bildirimler', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 4),
-        Text(store.notificationsEnabled
-            ? '5 gün önce normal, 1 gün önce dikkat, vade günü son uyarı aktif.'
-            : 'Bildirimler kapalı. Ayarlar bölümünden açabilirsiniz.',
+        Text(store.reminderError ?? (store.notificationsEnabled
+            ? 'Vade öncesi, vade günü ve gecikme uyarıları planlandı.'
+            : 'Bildirimler kapalı. Ayarlar bölümünden açabilirsiniz.'),
           style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
       ])),
       TextButton(onPressed: () => setState(() => _selected = 3), child: const Text('Ayarla')),
@@ -369,7 +370,7 @@ class _HomeShellState extends State<HomeShell> {
       SwitchListTile.adaptive(
         title: const Text('Ödeme bildirimleri'),
         subtitle: Text(store.supportsNotifications
-          ? 'Vade tarihinden 5 gün önce, 1 gün önce ve vade günü'
+          ? '5 gün önce, 1 gün önce, vade günü ve vade geçtikten sonra'
           : 'Yerel bildirimler Android ve iOS uygulamasında kullanılabilir.'),
         value: store.notificationsEnabled,
         onChanged: !store.supportsNotifications ? null : (v) async {
@@ -397,7 +398,32 @@ class _HomeShellState extends State<HomeShell> {
         },
       ),
     ])),
-    const SizedBox(height: 11),
+    if (defaultTargetPlatform == TargetPlatform.android && store.supportsNotifications)
+      OutlinedButton.icon(
+        icon: const Icon(Icons.alarm),
+        label: Text(store.reminders.exactTimingAllowed ? 'Tam saat izni açık' : 'Tam saat iznini aç'),
+        onPressed: () async {
+          try {
+            final accepted = await store.reminders.requestExactTiming();
+            await store.refresh();
+            if (!accepted && mounted) showError(context, 'Tam saat izni verilmedi; Android hatırlatmayı erteleyebilir.');
+          } catch (error) {
+            if (mounted) showError(context, error);
+          }
+        },
+      ),
+    if (store.supportsNotifications) OutlinedButton.icon(
+      icon: const Icon(Icons.notifications_outlined),
+      label: const Text('Test bildirimi gönder'),
+      onPressed: () async {
+        try {
+          await store.reminders.sendTestNotification();
+          if (mounted) showSuccess(context, 'Test bildirimi telefona iletildi. Bildirim perdesini kontrol edin.');
+        } catch (error) {
+          if (mounted) showError(context, error);
+        }
+      },
+    ),    const SizedBox(height: 11),
     Text('Bildirimler cihaz üzerinde zamanlanır. Telefon kapalıysa, izin verilmediyse veya işletim sistemi ertelerse bildirimin tam zamanında ulaşması garanti değildir.',
       style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
     if (store.reminderError != null) ...[

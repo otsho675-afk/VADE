@@ -7,3 +7,5 @@ analyzer:
     - build/**
     - web/**
     - windows/**
+    - android/**
+    - ios/**

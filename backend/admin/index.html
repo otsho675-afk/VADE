@@ -4,14 +4,13 @@
 <body><main><h1>VADESİ Yönetim</h1><p id="status" role="status">Yapılandırma yükleniyor…</p>
 <form id="login"><label>E-posta<input id="email" type="email" required autocomplete="username"></label>
 <label>Şifre<input id="password" type="password" required autocomplete="current-password"></label>
-<button>Giriş yap</button></form>
+<button>Giriş yap</button><button id="reset-password" type="button">Şifre belirle / Şifremi unuttum</button></form>
 <section id="panel" hidden><button id="logout">Çıkış yap</button><button id="refresh">Yenile</button>
 <p id="counts"></p><h2>Üyeler</h2><p>Çevrimiçi bilgisi açık uygulama bağlantılarını gösterir. Son görülme veya bağlantı kesilmesi, uygulamanın silindiğini kanıtlamaz.</p>
 <div class="scroll"><table><thead><tr><th>E-posta</th><th>Son görülme</th><th>Durum</th><th>Premium bitiş</th></tr></thead><tbody id="users"></tbody></table></div>
 <button id="next">Sonraki 50 üye</button>
 <h2>Son doğrulanan abonelikler</h2><div class="scroll"><table><thead><tr><th>Üye</th><th>Mağaza</th><th>Ürün</th><th>Bitiş</th></tr></thead><tbody id="orders"></tbody></table></div>
 <p>Bu liste abonelik durumunu gösterir; muhasebe cirosu veya tüm yenilemelerin işlem defteri değildir. Gelir raporları mağaza konsollarındadır.</p>
-<h2>Duyuru gönder</h2><form id="announcement"><label>Başlık<input id="title" maxlength="80" required></label>
-<label>Mesaj<textarea id="body" maxlength="500" required></textarea></label><button>İzin veren cihazlara gönder</button></form>
-<p>OneSignal cihaz aboneliği kullanıcı hesabıyla eşleştirilmez. Push izinleri ve geçersiz cihazlar OneSignal panelinden takip edilir.</p>
-</section></main><script src="config.js"></script><script type="module" src="app.js"></script></body></html>
+<h2>Duyuru gönder</h2>
+<p>Duyurular OneSignal panelinden gönderilir. Vade hatırlatmaları kullanıcının telefonunda zamanlanır.</p>
+<p><a href="https://dashboard.onesignal.com/apps/80af0515-e91e-4967-9e13-e95c74a85c1a" target="_blank" rel="noopener noreferrer">OneSignal duyuru panelini aç</a></p></section></main><script src="config.js"></script><script type="module" src="app.js"></script></body></html>

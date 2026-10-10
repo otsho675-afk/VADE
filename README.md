@@ -77,10 +77,23 @@ gerçek cihaz testleri yayın öncesinde tamamlanmalıdır. SQLite ve JSON yedek
 Uygulama bankadan para göndermez ve kurum borçlarını otomatik sorgulamaz.
 
 Bildirimler Türkiye saat diliminde tam saatlere planlanır. İşletim sistemi izinleri ve pil
-yönetimi teslimatı etkileyebilir. En yakın 20 plan için en fazla 60 hatırlatma hazırlanır.
+yönetimi teslimatı etkileyebilir. Her planın en eski ödenmemiş kaydı için 5 gün önce, 1 gün önce, vade günü ve vade ertesi uyarıları hazırlanır; en yakın 60 bildirim saklanır. Gecikmiş kayıtlar yeniden planlandığında seçili saatin bir sonraki gelişinde uyarılır.
 Fatura/aboneliklerde bir sonraki dönem, önceki dönem ödendiğinde oluşturulur.
 
 
 ## Firebase, Premium ve yönetim paneli
 
 İsteğe bağlı bulut hizmetleri ve mağaza kurulumu için [Kurulum ve yayın kılavuzu](docs/KURULUM_VE_YAYIN.md). Firebase/OneSignal hesabı ve mağaza anahtarları bağlanmadan bulut/ödeme hizmetleri aktif değildir. Yerel takip çalışır.
+
+### Hesap bağlantısıyla Android APK
+
+Yerel Firebase ayarları hazırsa:
+powershell -ExecutionPolicy Bypass -File scripts/android-apk.ps1
+
+Bu betik config/firebase.android.json ayarlarını derlemeye dahil eder.
+Android için VADESİ Firebase istemci ayarları varsayılan olarak kaynakta bulunur; düz flutter build apk komutunda da hesap kaydı aktiftir. --dart-define değerleri bu varsayılanları değiştirebilir.
+iOS derlemesine de kendi FIREBASE_IOS_APP_ID değerini içeren ayar dosyası
+--dart-define-from-file ile verilmelidir.
+
+Bildirim almak için Ayarlar > Ödeme bildirimleri açık olmalı ve telefonun
+bildirim izni verilmelidir. Ödenen veya silinen kayıtların uyarıları kaldırılır.

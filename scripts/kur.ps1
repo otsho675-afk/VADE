@@ -24,6 +24,12 @@ try {
   $manifest = Join-Path $projectRoot 'android/app/src/main/AndroidManifest.xml'
   if (Test-Path $manifest) {
     $xml = Get-Content $manifest -Raw -Encoding UTF8
+    if (-not $xml.Contains('android.permission.SCHEDULE_EXACT_ALARM')) {
+      $xml = $xml.Replace('<application', '<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />' + [Environment]::NewLine + '    <application')
+    }
+    if (-not $xml.Contains('android.permission.INTERNET')) {
+      $xml = $xml.Replace('<application', "<uses-permission android:name=""android.permission.INTERNET"" />" + [Environment]::NewLine + '    <application')
+    }
     if (-not $xml.Contains('android.permission.POST_NOTIFICATIONS')) {
       $xml = $xml.Replace('<application', "<uses-permission android:name=`"android.permission.POST_NOTIFICATIONS`" />`n    <uses-permission android:name=`"android.permission.RECEIVE_BOOT_COMPLETED`" />`n    <application")
     }
@@ -67,6 +73,23 @@ try {
     [System.IO.File]::WriteAllText($groovy, $gradle, (New-Object System.Text.UTF8Encoding $false))
   }
 
+  # iOS foreground delivery must also be configured on Windows-generated hosts.
+  $delegatePath = Join-Path $projectRoot 'ios/Runner/AppDelegate.swift'
+  if (Test-Path -LiteralPath $delegatePath) {
+    $delegate = Get-Content -LiteralPath $delegatePath -Raw -Encoding UTF8
+    if (-not $delegate.Contains('import UserNotifications')) {
+      $delegate = 'import UserNotifications' + [Environment]::NewLine + $delegate
+    }
+    if (-not $delegate.Contains('UNUserNotificationCenter.current().delegate')) {
+      if (-not $delegate.Contains('return super.application(')) {
+        throw 'AppDelegate launch method changed; configure notification delegate manually.'
+      }
+      $delegate = $delegate.Replace('return super.application(',
+        'UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate' +
+        [Environment]::NewLine + '    return super.application(')
+    }
+    [System.IO.File]::WriteAllText($delegatePath, $delegate, (New-Object System.Text.UTF8Encoding $false))
+  }
   flutter pub get
   if ($LASTEXITCODE -ne 0) { throw 'Paketler indirilemedi. Baglantinizi ve Flutter SDK surumunu kontrol edin.' }
   dart run sqflite_common_ffi_web:setup

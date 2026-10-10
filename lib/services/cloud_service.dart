@@ -24,7 +24,11 @@ class CloudService extends ChangeNotifier with WidgetsBindingObserver {
   FirebaseFunctions get functions => FirebaseFunctions.instanceFor(region: CloudConfig.region);
 
   Future<void> initialize() async {
-    if (!CloudConfig.configured) return;
+    if (!CloudConfig.configured) {
+      error = 'Bu sürümde hesap bağlantısı yapılandırılmamış. Firebase ayarlarıyla hazırlanmış güncel sürümü yükleyin.';
+      _notify();
+      return;
+    }
     try {
       await Firebase.initializeApp(options: CloudConfig.options);
       ready = true;
@@ -73,10 +77,21 @@ class CloudService extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> signIn(String email, String password, {bool register = false}) async {
     if (!ready) throw StateError('Bulut bağlantısı yapılandırılmamış.');
+    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email.trim())) {
+      throw const FormatException('Geçerli bir e-posta adresi girin.');
+    }
+    if (password.isEmpty || (register && password.length < 6)) {
+      throw const FormatException('Şifreniz en az 6 karakter olmalı.');
+    }
     error = null;
     if (register) {
       await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email.trim(), password: password);
-      await FirebaseAuth.instance.currentUser?.sendEmailVerification();
+      try {
+        await FirebaseAuth.instance.currentUser?.sendEmailVerification();
+      } catch (_) {
+        error = 'Hesabınız oluşturuldu ancak doğrulama e-postası gönderilemedi. Daha sonra tekrar deneyin.';
+        _notify();
+      }
     } else {
       await FirebaseAuth.instance.signInWithEmailAndPassword(email: email.trim(), password: password);
     }
@@ -96,7 +111,16 @@ class CloudService extends ChangeNotifier with WidgetsBindingObserver {
     await current.reauthenticateWithCredential(
       EmailAuthProvider.credential(email: current.email!, password: password));
     await _stopPresence();
-    await functions.httpsCallable('deleteMyAccount').call<void>();
+    if (CloudConfig.premiumEnabled) {
+      await functions.httpsCallable('deleteMyAccount').call<void>();
+    } else {
+      await FirebaseFirestore.instance.doc('users/' + current.uid + '/private/backup').delete();
+      await FirebaseFirestore.instance.doc('users/' + current.uid).delete();
+      if (CloudConfig.databaseUrl.isNotEmpty) {
+        await FirebaseDatabase.instance.ref('presence/' + current.uid).remove();
+      }
+      await current.delete();
+    }
     await FirebaseAuth.instance.signOut();
   }
 

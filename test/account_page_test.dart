@@ -12,7 +12,7 @@ void main() {
     expect(find.text('Abone ol'), findsNothing);
     expect(find.text('Hesap oluştur'), findsNothing);
     final toggle = tester.widget<SwitchListTile>(find.byType(SwitchListTile));
-    expect(toggle.onChanged, isNull);
+    expect(toggle.onChanged, isNotNull); // OneSignal announcements do not require a Firebase login.
     await tester.pumpWidget(const SizedBox.shrink());
     store.dispose();
   });

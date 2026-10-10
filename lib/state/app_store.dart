@@ -1,3 +1,4 @@
+import '../services/cloud_config.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/cloud_service.dart';
@@ -11,9 +12,9 @@ import '../services/reminder_service.dart';
 class AppStore extends ChangeNotifier {
   final LocalDatabase db;
   final ReminderService reminders;
-  AppStore({LocalDatabase? database, ReminderService? reminderService})
-      : db = database ?? LocalDatabase(), reminders = reminderService ?? ReminderService();
-  final cloud = CloudService();
+  AppStore({LocalDatabase? database, ReminderService? reminderService, CloudService? cloudService})
+      : db = database ?? LocalDatabase(), reminders = reminderService ?? ReminderService(), cloud = cloudService ?? CloudService();
+  final CloudService cloud;
   final remotePush = RemotePushService();
   late final purchases = PurchaseService(cloud);
   bool _servicesStarted = false;
@@ -55,7 +56,7 @@ class AppStore extends ChangeNotifier {
   Future<void> _initializeServices() async {
     await cloud.initialize();
     if (_disposed) return;
-    try { await remotePush.initialize(); await purchases.initialize(); }
+    try { await remotePush.initialize(); if (CloudConfig.premiumEnabled) await purchases.initialize(); }
     catch (_) { cloud.error = 'Bildirim veya mağaza bağlantısı kurulamadı.'; }
     notifyListeners();
   }
@@ -111,7 +112,7 @@ class AppStore extends ChangeNotifier {
     if (enabled && !(await reminders.requestPermissions())) return false;
     notificationsEnabled = enabled;
     await (await SharedPreferences.getInstance()).setBool('notifications_enabled', enabled);
-    await reminders.sync(items, enabled: enabled, hour: notifyHour);
+    await refresh();
     notifyListeners();
     return true;
   }
@@ -120,7 +121,7 @@ class AppStore extends ChangeNotifier {
     if (value < 0 || value > 23) throw ArgumentError.value(value, 'hour');
     notifyHour = value;
     await (await SharedPreferences.getInstance()).setInt('notify_hour', value);
-    await reminders.sync(items, enabled: notificationsEnabled, hour: value);
+    await refresh();
     notifyListeners();
   }
 

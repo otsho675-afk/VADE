@@ -30,7 +30,7 @@ Android/iOS için proje kimliği başlangıçta `com.vadesi.vadesi`. Mağazaya i
 2. Authentication → Sign-in method → Email/Password açın. Şifre ilkesi ve e-posta numaralandırma korumasını etkinleştirin. Hosting alanınızı Authorized domains listesine ekleyin.
 3. Aynı projede Android, iOS ve Web uygulaması kaydedin. Paket/bundle kimliklerini eşleştirin. Her platformun Firebase API key/App ID bilgilerini kendi yapılandırma dosyasına yazın; API anahtarının platform kısıtlamalarını koruyun.
 4. `config/firebase.example.json` dosyasını `config/firebase.android.json`, `config/firebase.ios.json`, `config/firebase.web.json` olarak kopyalayın. İlgili platformun anahtarını `FIREBASE_API_KEY` alanına, App ID'lerini ve gerçek Realtime Database URL'sini doldurun. `FIREBASE_ENABLED` değerini true yapın.
-5. Gizlilik ve kullanım koşulları HTTPS adreslerini doldurun. Bu adresler yoksa uygulama yeni hesap ve satın alma düğmelerini açmaz.
+5. Gizlilik ve kullanım koşulları HTTPS adreslerini doldurun. Bu adresler yoksa Premium satın alma düğmeleri kapalı kalır; ücretsiz hesap oluşturma çalışır.
 6. Flutter açık FirebaseOptions ile başlar. Sağlayıcı ayarlarının gerektirdiği `GoogleService-Info.plist` / `google-services.json` dosyalarını Firebase'den indirin; özellikle OneSignal FCM/APNs kurulumunu aşağıda tamamlayın.
 7. Firebase CLI yükleyin, giriş yapın ve proje kimliğini seçin:
 

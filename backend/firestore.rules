@@ -14,7 +14,7 @@ service cloud.firestore {
         request.resource.data.email == request.auth.token.email &&
         request.resource.data.displayName is string && request.resource.data.displayName.size() <= 100 &&
         request.resource.data.lastSeenAt == request.time;
-      allow delete: if false;
+      allow delete: if owner(uid);
       match /private/backup {
         allow read: if owner(uid);
         allow create, update: if owner(uid) && premium(uid) &&
