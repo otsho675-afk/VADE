@@ -4,5 +4,5 @@ flutter_launcher_icons:
   web:
     generate: true
     image_path: assets/images/vadesi_mark.png
-    background_color: '#104C46'
-    theme_color: '#104C46'
+    background_color: '#243F56'
+    theme_color: '#243F56'

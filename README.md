@@ -97,3 +97,9 @@ iOS derlemesine de kendi FIREBASE_IOS_APP_ID değerini içeren ayar dosyası
 
 Bildirim almak için Ayarlar > Ödeme bildirimleri açık olmalı ve telefonun
 bildirim izni verilmelidir. Ödenen veya silinen kayıtların uyarıları kaldırılır.
+## VADESİ marka logosu ve animasyonlu açılış
+
+Android, iOS ve web aynı V sembolünü kullanır. Android/iOS'ta ilk açılış
+sistemin izin verdiği statik logoyla başlar; Flutter başladıktan sonra kısa
+logo animasyonu görünür. Derleme ve önbellek ayrıntıları:
+[Logo ve açılış kılavuzu](docs/BRANDING_VE_ACILIS.md).

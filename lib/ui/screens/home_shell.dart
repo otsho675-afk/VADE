@@ -195,27 +195,27 @@ class _HomeShellState extends State<HomeShell> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
-          colors: [Color(0xFF104C46), Color(0xFF237C65)]),
+          colors: [Color(0xFF23465F), Color(0xFF397C9A)]),
         borderRadius: BorderRadius.circular(28),
-        boxShadow: [BoxShadow(color: const Color(0xFF104C46).withValues(alpha: .18),
+        boxShadow: [BoxShadow(color: const Color(0xFF23465F).withValues(alpha: .18),
           blurRadius: 24, offset: const Offset(0, 10))],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           const Expanded(child: Text('BU AYA KADAR ÖDENECEK',
-            style: TextStyle(color: Color(0xFFD8F4E4), fontSize: 11, letterSpacing: 1.4, fontWeight: FontWeight.w600))),
-          const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFFD8F4E4)),
+            style: TextStyle(color: Color(0xFFDCEEF8), fontSize: 11, letterSpacing: 1.4, fontWeight: FontWeight.w600))),
+          const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFFDCEEF8)),
         ]),
         const SizedBox(height: 14),
         FittedBox(fit: BoxFit.scaleDown, child: Text(formatCompactMoney(store.monthOutgoing),
           style: const TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w800, letterSpacing: -1))),
         const SizedBox(height: 8),
         const Text('Vadesi gelen ve gecikmiş borçların toplamı',
-          style: TextStyle(color: Color(0xFFD8F4E4), fontSize: 12)),
+          style: TextStyle(color: Color(0xFFDCEEF8), fontSize: 12)),
         const SizedBox(height: 20),
         Wrap(spacing: 12, runSpacing: 10, children: [
-          FilledButton.icon(style: FilledButton.styleFrom(backgroundColor: const Color(0xFFD7F7B4),
-              foregroundColor: const Color(0xFF173F32)),
+          FilledButton.icon(style: FilledButton.styleFrom(backgroundColor: const Color(0xFFD5EDFD),
+              foregroundColor: const Color(0xFF23465F)),
             onPressed: _openAdd, icon: const Icon(Icons.add_rounded), label: const Text('Ödeme ekle')),
           TextButton.icon(style: TextButton.styleFrom(foregroundColor: Colors.white),
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CalendarPage(store: store))),
@@ -560,7 +560,7 @@ class _HomeShellState extends State<HomeShell> {
           subtitle: Text('IBAN ve ödeme bilgileri cihazda tutulur; bu sürümde veritabanı şifreli değildir. Telefon ekran kilidini kullanın.')),
       ]))),
     const SizedBox(height: 21),
-    Center(child: Text('VADESİ · 1.2.1',
+    Center(child: Text('VADESİ · 1.2.2',
       style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant))),
   ]));
 }

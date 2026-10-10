@@ -54,15 +54,15 @@ class _WelcomeGateState extends State<WelcomeGate> {
         const SizedBox(height: 28),
         Container(padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Color(0xFF104C46), Color(0xFF1E7767)]),
+            gradient: const LinearGradient(colors: [Color(0xFF23465F), Color(0xFF397C9A)]),
             borderRadius: BorderRadius.circular(28)),
           child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Icon(Icons.calendar_month_rounded, color: Color(0xFFC6F4D8), size: 34),
+            Icon(Icons.calendar_month_rounded, color: Color(0xFFD3EAF8), size: 34),
             SizedBox(height: 18),
             Text('Planla. Hatırla. Rahatla.', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
             SizedBox(height: 10),
             Text('Kaydırmalı tarih seçimi • Vade hatırlatmaları\nCihazda kayıt • İsteğe bağlı bulut yedeği',
-              style: TextStyle(color: Color(0xFFE0F5E9), height: 1.7)),
+              style: TextStyle(color: Color(0xFFE5F4FD), height: 1.7)),
           ])),
         ]))),
         Padding(padding: const EdgeInsets.fromLTRB(28, 8, 28, 16),
