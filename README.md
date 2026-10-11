@@ -83,7 +83,18 @@ Fatura/aboneliklerde bir sonraki dönem, önceki dönem ödendiğinde oluşturul
 
 ## Firebase, Premium ve yönetim paneli
 
-İsteğe bağlı bulut hizmetleri ve mağaza kurulumu için [Kurulum ve yayın kılavuzu](docs/KURULUM_VE_YAYIN.md). Firebase/OneSignal hesabı ve mağaza anahtarları bağlanmadan bulut/ödeme hizmetleri aktif değildir. Yerel takip çalışır.
+İsteğe bağlı bulut hizmetleri ve mağaza kurulumu için [Kurulum ve yayın kılavuzu](docs/KURULUM_VE_YAYIN.md). **Android ve iOS Firebase istemci ayarları** mevcut `vade-b46fb` projesini işaret eder; iOS `GoogleService-Info.plist` dosyası Runner kaynaklarına dahildir. Bu, Firebase Console tarafındaki Authentication sağlayıcılarının, Firestore/Realtime Database'in, güvenlik kurallarının veya Cloud Functions'ın yayımlandığını **garanti etmez**. Yönetici paneli ve web uygulaması için kayıtlı bir Firebase Web App'in API anahtarı ve App ID'si ayrıca tanımlanmalıdır. Premium satın alma, sunucu doğrulaması ve push izinleri ayrıca kurulmadan aktif değildir. Yerel takip Firebase olmadan da çalışır.
+
+Firebase projesi `backend/.firebaserc` dosyasında seçilidir. Firestore ve Realtime Database'i Console'dan oluşturup **Email/Password** Authentication sağlayıcısını etkinleştirdikten sonra güvenlik kurallarını dağıtmak için:
+
+```sh
+npm install -g firebase-tools
+firebase login
+cd backend
+firebase deploy --only firestore:rules,firestore:indexes,database --project vade-b46fb
+```
+
+Bu komutları çalıştırmadan önce mevcut üretim kurallarını kontrol edin; deploy çalışan veritabanı kurallarını değiştirir. Bulut fonksiyonları için ayrıca sunucu sırları ve Firebase faturalandırma yapılandırması gerekir.
 
 ### Hesap bağlantısıyla Android APK
 
