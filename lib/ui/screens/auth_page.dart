@@ -181,6 +181,12 @@ class _AuthPageState extends State<AuthPage> {
                   FilledButton(onPressed: _busy || !ready ? null : _submit,
                     child: _busy ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) :
                       Text(_register ? 'Hesabımı oluştur' : 'Hesabıma giriş yap')),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: _busy ? null : () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    label: const Text('Hesap açmadan devam et'),
+                  ),
                   if (CloudConfig.privacyUrl.startsWith('https://'))
                     TextButton(onPressed: () => launchUrl(Uri.parse(CloudConfig.privacyUrl)),
                       child: const Text('Gizlilik politikası')),
