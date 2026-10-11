@@ -603,7 +603,7 @@ class _HomeShellState extends State<HomeShell> {
         onChanged: !store.supportsNotifications ? null : (v) async {
           try {
             final accepted = await store.setNotifications(v);
-            if (!accepted && mounted) showError(context, 'Bildirim izni reddedildi. Telefon ayarlarından izin verebilirsiniz.');
+            if (!accepted && mounted) showError(context, await store.reminders.permissionFailureMessage());
           } catch (e) {
             if (mounted) showError(context, e);
           }
@@ -648,7 +648,19 @@ class _HomeShellState extends State<HomeShell> {
           if (mounted) showError(context, error);
         }
       },
-    ),    const SizedBox(height: 11),
+    ),
+    if (defaultTargetPlatform == TargetPlatform.iOS && store.supportsNotifications)
+      OutlinedButton.icon(
+        icon: const Icon(Icons.settings_outlined),
+        label: const Text('iPhone bildirim ayarlarını aç'),
+        onPressed: () async {
+          final opened = await store.reminders.openIosNotificationSettings();
+          if (!opened && mounted) {
+            showError(context, 'iPhone Ayarlar > Bildirimler bölümünü açıp VADESİ uygulamasını kontrol edin.');
+          }
+        },
+      ),
+    const SizedBox(height: 11),
     Text('Bildirimler cihaz üzerinde zamanlanır. Telefon kapalıysa, izin verilmediyse veya işletim sistemi ertelerse bildirimin tam zamanında ulaşması garanti değildir.',
       style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
     if (store.reminderError != null) ...[
