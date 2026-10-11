@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -7,9 +8,11 @@ import '../models/payment.dart';
 import 'reminder_plan.dart';
 
 class ReminderService {
+  static const MethodChannel _iosPermissions = MethodChannel('vadesi/notifications');
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   bool _ready = false;
+  String? _initializationError;
   bool exactTimingAllowed = false;
   bool get supported =>
       !kIsWeb &&
@@ -29,38 +32,100 @@ class ReminderService {
       requestSoundPermission: false,
     );
     try {
+      _initializationError = null;
       _ready =
           await _plugin.initialize(
             const InitializationSettings(android: android, iOS: ios),
           ) ??
           false;
-    } catch (_) {
-      // Desktop/web emulator without a native notification host: the ledger still works.
+    } catch (error) {
+      // Keep the local ledger working, but never report a plugin failure as a user denial.
+      _initializationError = '$error';
+      debugPrint('Notification initialization failed: $error');
       _ready = false;
     }
   }
 
   Future<bool> requestPermissions() async {
+    if (!supported) return false;
+    if (!_ready) await initialize();
     if (!_ready) return false;
+
     final android = _plugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >();
-    if (android != null)
+    if (android != null) {
       return await android.requestNotificationsPermission() ?? false;
+    }
+
     final ios = _plugin
         .resolvePlatformSpecificImplementation<
           IOSFlutterLocalNotificationsPlugin
         >();
     if (ios != null) {
+      // Request directly from iOS. Unlike the plugin's false return value,
+      // the system authorization status is independently inspectable.
+      try {
+        return await _iosPermissions.invokeMethod<bool>('requestPermission') ??
+            false;
+      } on MissingPluginException {
+        // Allow iOS builds without the native bridge to keep working.
+      } on PlatformException catch (error) {
+        debugPrint('Native notification permission request failed: $error');
+      }
       return await ios.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          ) ??
-          false;
+            alert: true, badge: true, sound: true,
+          ) ?? false;
     }
     return false;
+  }
+
+  Future<String?> _iosAuthorizationStatus() async {
+    if (defaultTargetPlatform != TargetPlatform.iOS || kIsWeb) return null;
+    try {
+      return await _iosPermissions.invokeMethod<String>('authorizationStatus');
+    } on MissingPluginException {
+      return null;
+    } on PlatformException catch (error) {
+      debugPrint('Could not check native notification permission: $error');
+      return null;
+    }
+  }
+
+  Future<String> permissionFailureMessage() async {
+    if (!_ready) {
+      return 'iPhone bildirim hizmeti başlatılamadı. '
+          'Uygulamayı kapatıp yeniden açın. '
+          'Sorun sürerse uygulamanın güncel sürümünü yükleyin.'
+          '${_initializationError == null ? '' : ' (Teknik hata: $_initializationError)'}';
+    }
+    final status = await _iosAuthorizationStatus();
+    if (status == 'denied') {
+      return 'iPhone bildirim izni kapalı. '
+          'Ayarlar > Bildirimler > VADESİ bölümünden izin verin.';
+    }
+    if (status == 'notDetermined') {
+      return 'iPhone henüz bildirim izni istemedi. '
+          'Ödeme bildirimlerini açıp izin penceresini onaylayın.';
+    }
+    if (status == 'authorized' || status == 'provisional') {
+      return 'Bildirim izni açık görünüyor fakat bildirim servisi '
+          'işlemi tamamlayamadı. Uygulamayı yeniden açın.';
+    }
+    return 'Bildirim izni alınamadı. '
+        'Ayarlar > Bildirimler > VADESİ bölümünü kontrol edin.';
+  }
+
+  Future<bool> openIosNotificationSettings() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return false;
+    try {
+      return await _iosPermissions.invokeMethod<bool>('openSettings') ?? false;
+    } on MissingPluginException {
+      return false;
+    } on PlatformException {
+      return false;
+    }
   }
 
   Future<void> _pendingSync = Future<void>.value();
@@ -145,8 +210,13 @@ class ReminderService {
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >();
-    if (android != null)
+    if (android != null) {
       return await android.areNotificationsEnabled() ?? false;
+    }
+    final status = await _iosAuthorizationStatus();
+    if (status != null) {
+      return status == 'authorized' || status == 'provisional';
+    }
     final ios = _plugin
         .resolvePlatformSpecificImplementation<
           IOSFlutterLocalNotificationsPlugin
@@ -173,9 +243,7 @@ class ReminderService {
 
   Future<void> sendTestNotification() async {
     if (!await requestPermissions()) {
-      throw StateError(
-        'Bildirim izni verilmedi. Telefon ayarlarından izin verin.',
-      );
+      throw StateError(await permissionFailureMessage());
     }
     await _plugin.show(
       2147483646,
