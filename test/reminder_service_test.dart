@@ -125,6 +125,7 @@ void main() {
     expect(await service.permissionGranted(), isTrue);
     expect(await service.openIosNotificationSettings(), isTrue);
     expect(nativeCalls, [
+      'authorizationStatus', // native bridge detection during initialize
       'requestPermission',
       'authorizationStatus',
       'openSettings',
@@ -145,6 +146,79 @@ void main() {
     await service.initialize();
     expect(await service.requestPermissions(), isFalse);
     expect(await service.permissionFailureMessage(), contains('Ayarlar > Bildirimler'));
+  });
+
+  test('iOS works through native bridge even if Flutter notification plugin fails', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    IOSFlutterLocalNotificationsPlugin.registerWith();
+    final nativeCalls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(iosPermissionChannel, (call) async {
+          nativeCalls.add(call);
+          switch (call.method) {
+            case 'authorizationStatus':
+              return 'authorized';
+            case 'requestPermission':
+              return true;
+            case 'pendingIds':
+              return <int>[];
+            case 'openSettings':
+              return true;
+            case 'showNow':
+            case 'schedule':
+            case 'cancelIds':
+            case 'cancelAll':
+              return null;
+          }
+          return null;
+        });
+    // The installed Flutter plugin cannot initialize: native notifications
+    // must still schedule and deliver without touching the plugin channel.
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          if (call.method == 'initialize') throw PlatformException(code: 'UNAVAILABLE');
+          return null;
+        });
+
+    final service = ReminderService();
+    await service.initialize();
+    expect(calls.where((c) => c.method == 'initialize'), isEmpty);
+    expect(await service.requestPermissions(), isTrue);
+    expect(await service.permissionGranted(), isTrue);
+    final due = DateTime.now().subtract(const Duration(days: 10));
+    await service.sync([item(1, due)], enabled: true, hour: 9);
+    final scheduled = nativeCalls.where((c) => c.method == 'schedule').single;
+    expect(scheduled.arguments['id'], 14);
+    expect(scheduled.arguments['title'], 'Vade tarihi geçti');
+    expect(scheduled.arguments['epochMillis'], isA<int>());
+
+    await service.sendTestNotification();
+    expect(nativeCalls.where((c) => c.method == 'showNow').last.arguments['id'], 2147483646);
+
+    await service.sync([], enabled: false, hour: 9);
+    expect(nativeCalls.where((c) => c.method == 'cancelAll'), hasLength(1));
+    expect(calls.where((c) => c.method == 'show' || c.method == 'zonedSchedule'), isEmpty);
+  });
+
+  test('iOS native reminders cancel obsolete due items', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    IOSFlutterLocalNotificationsPlugin.registerWith();
+    final nativeCalls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(iosPermissionChannel, (call) async {
+          nativeCalls.add(call);
+          if (call.method == 'authorizationStatus') return 'authorized';
+          if (call.method == 'pendingIds') return <int>[14, 24];
+          if (call.method == 'requestPermission') return true;
+          return null;
+        });
+    final service = ReminderService();
+    await service.initialize();
+    await service.sync([item(1, DateTime(2020))], enabled: true, hour: 9);
+    final cancelled = nativeCalls.where((c) => c.method == 'cancelIds').single;
+    expect(cancelled.arguments['ids'], contains(24));
+    expect(cancelled.arguments['ids'], isNot(contains(14)));
   });
 
   test('test button submits an immediate notification', () async {
