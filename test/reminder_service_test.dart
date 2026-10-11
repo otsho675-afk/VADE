@@ -9,6 +9,7 @@ import 'reminder_plan_test.dart' show item;
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   const channel = MethodChannel('dexterous.com/flutter/local_notifications');
+  const iosPermissionChannel = MethodChannel('vadesi/notifications');
   final calls = <MethodCall>[];
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -31,6 +32,8 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(iosPermissionChannel, null);
   });
   test(
     'overdue item reaches native scheduler and paid item cancels it',
@@ -103,6 +106,47 @@ void main() {
       expect(calls.where((c) => c.method == 'show'), isEmpty);
     },
   );
+  test('iOS native notification request, status and settings link work', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    IOSFlutterLocalNotificationsPlugin.registerWith();
+    final nativeCalls = <String>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(iosPermissionChannel, (call) async {
+          nativeCalls.add(call.method);
+          if (call.method == 'requestPermission') return true;
+          if (call.method == 'authorizationStatus') return 'authorized';
+          if (call.method == 'openSettings') return true;
+          return null;
+        });
+
+    final service = ReminderService();
+    await service.initialize();
+    expect(await service.requestPermissions(), isTrue);
+    expect(await service.permissionGranted(), isTrue);
+    expect(await service.openIosNotificationSettings(), isTrue);
+    expect(nativeCalls, [
+      'requestPermission',
+      'authorizationStatus',
+      'openSettings',
+    ]);
+  });
+
+  test('iOS denied permission gives an actionable explanation', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    IOSFlutterLocalNotificationsPlugin.registerWith();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(iosPermissionChannel, (call) async {
+          if (call.method == 'requestPermission') return false;
+          if (call.method == 'authorizationStatus') return 'denied';
+          return null;
+        });
+
+    final service = ReminderService();
+    await service.initialize();
+    expect(await service.requestPermissions(), isFalse);
+    expect(await service.permissionFailureMessage(), contains('Ayarlar > Bildirimler'));
+  });
+
   test('test button submits an immediate notification', () async {
     final service = ReminderService();
     await service.initialize();
