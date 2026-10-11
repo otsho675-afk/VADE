@@ -7,6 +7,7 @@ import '../widgets/wheel_date_picker.dart';
 import '../../models/payment.dart';
 import '../../services/ledger_insights.dart';
 import '../../state/app_store.dart';
+import '../../services/cloud_config.dart';
 import '../widgets/common.dart';
 import 'payment_detail_page.dart';
 import 'payment_form_page.dart';
@@ -539,10 +540,37 @@ class _HomeShellState extends State<HomeShell> {
     const SizedBox(height: 20),
     Card(child: ListTile(
       leading: const Icon(Icons.account_circle_outlined),
-      title: const Text('Hesabım ve Premium'),
-      subtitle: const Text('Bulut yedeği, üyelik ve duyuru bildirimleri'),
+      title: Text(CloudConfig.premiumEnabled ? 'Hesabım ve Premium' : 'Hesabım'),
+      subtitle: Text(CloudConfig.premiumEnabled
+        ? 'Bulut yedeği, üyelik ve duyuru bildirimleri'
+        : 'İsteğe bağlı hesap, hesap silme ve duyurular'),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AccountPage(store: store))),
+    )),
+    const SizedBox(height: 12),
+    Card(child: ListTile(
+      leading: const Icon(Icons.help_outline_rounded),
+      title: const Text('Nasıl kullanılır?'),
+      subtitle: const Text('Misafir kullanım, ödeme ekleme ve hesap işlemleri'),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('VADESİ kullanım rehberi'),
+          content: const SingleChildScrollView(child: Text(
+            '1. Hesap açmadan misafir olarak başlayabilirsiniz.\\n\\n'
+            '2. Sağ üstteki + düğmesinden taksit, fatura, abonelik veya alacak ekleyin.\\n\\n'
+            '3. Ödemeler sekmesinden kayıtları arayın, düzenleyin ve ödendi olarak işaretleyin.\\n\\n'
+            '4. Takvim ve Raporlar sekmelerinden vadeleri inceleyin.\\n\\n'
+            '5. Ayarlar bölümünden yerel hatırlatmaları ve dosya yedeğini yönetin.\\n\\n'
+            '6. Hesap isteğe bağlıdır: Hesabım > Üye ol veya Giriş yap. Hesabınızı Hesabım > Hesabımı sil yolundan silebilirsiniz.\\n\\n'
+            'Not: Gerçek para veya fatura ödemesi yapılmaz; bilgiler kişisel takip amaçlıdır.')),
+          actions: [TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Tamam'),
+          )],
+        ),
+      ),
     )),
     const SizedBox(height: 20),
     const SectionTitle('Görünüm'),
