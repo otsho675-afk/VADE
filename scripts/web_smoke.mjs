@@ -19,8 +19,8 @@ try {
   await page.screenshot({ path: 'web-dashboard.png', fullPage: true });
   await page.getByRole('button', { name: 'Yeni ödeme ekle', exact: true }).click();
   await page.getByRole('button', { name: 'Tek seferlik', exact: true }).click();
-  await page.getByRole('textbox', { name: /Ödeme adı/ }).fill('Web doğrulama');
-  await page.getByRole('textbox', { name: /Tutar/ }).fill('125,50');
+  await page.getByRole('textbox', { name: 'Örn. Telefon taksiti' }).fill('Web doğrulama');
+  await page.getByRole('textbox', { name: '1.250,00' }).fill('125,50');
   await page.getByRole('button', { name: 'Ödeme planını oluştur', exact: true }).click();
   await page.getByRole('group', { name: /^Web doğrulama/ }).waitFor();
   await page.reload();
