@@ -558,12 +558,12 @@ class _HomeShellState extends State<HomeShell> {
         builder: (dialogContext) => AlertDialog(
           title: const Text('VADESİ kullanım rehberi'),
           content: const SingleChildScrollView(child: Text(
-            '1. Hesap açmadan misafir olarak başlayabilirsiniz.\\n\\n'
-            '2. Sağ üstteki + düğmesinden taksit, fatura, abonelik veya alacak ekleyin.\\n\\n'
-            '3. Ödemeler sekmesinden kayıtları arayın, düzenleyin ve ödendi olarak işaretleyin.\\n\\n'
-            '4. Takvim ve Raporlar sekmelerinden vadeleri inceleyin.\\n\\n'
-            '5. Ayarlar bölümünden yerel hatırlatmaları ve dosya yedeğini yönetin.\\n\\n'
-            '6. Hesap isteğe bağlıdır: Hesabım > Üye ol veya Giriş yap. Hesabınızı Hesabım > Hesabımı sil yolundan silebilirsiniz.\\n\\n'
+            '1. Hesap açmadan misafir olarak başlayabilirsiniz.\n\n'
+            '2. Sağ üstteki + düğmesinden taksit, fatura, abonelik veya alacak ekleyin.\n\n'
+            '3. Ödemeler sekmesinden kayıtları arayın, düzenleyin ve ödendi olarak işaretleyin.\n\n'
+            '4. Takvim ve Raporlar sekmelerinden vadeleri inceleyin.\n\n'
+            '5. Ayarlar bölümünden yerel hatırlatmaları ve dosya yedeğini yönetin.\n\n'
+            '6. Hesap isteğe bağlıdır: Hesabım > Üye ol veya Giriş yap. Hesabınızı Hesabım > Hesabımı sil yolundan silebilirsiniz.\n\n'
             'Not: Gerçek para veya fatura ödemesi yapılmaz; bilgiler kişisel takip amaçlıdır.')),
           actions: [TextButton(
             onPressed: () => Navigator.pop(dialogContext),
