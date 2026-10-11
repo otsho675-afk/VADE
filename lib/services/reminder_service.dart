@@ -12,6 +12,7 @@ class ReminderService {
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   bool _ready = false;
+  bool _nativeIos = false;
   String? _initializationError;
   bool exactTimingAllowed = false;
   bool get supported =>
@@ -31,6 +32,24 @@ class ReminderService {
       requestBadgePermission: false,
       requestSoundPermission: false,
     );
+    // VADESİ ships its own UNUserNotificationCenter bridge for iOS.
+    // Plugin initialization may return false even while system authorization
+    // is granted, so prefer the native service when the bridge is available.
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      try {
+        final status = await _iosPermissions.invokeMethod<String>('authorizationStatus');
+        if (status != null) {
+          _nativeIos = true;
+          _ready = true;
+          _initializationError = null;
+          return;
+        }
+      } on MissingPluginException {
+        // Existing tests and older host apps use flutter_local_notifications.
+      } on PlatformException catch (error) {
+        debugPrint('Native iOS notification bridge unavailable: $error');
+      }
+    }
     try {
       _initializationError = null;
       _ready =
@@ -50,6 +69,9 @@ class ReminderService {
     if (!supported) return false;
     if (!_ready) await initialize();
     if (!_ready) return false;
+    if (_nativeIos) {
+      return await _iosPermissions.invokeMethod<bool>('requestPermission') ?? false;
+    }
 
     final android = _plugin
         .resolvePlatformSpecificImplementation<
@@ -157,7 +179,11 @@ class ReminderService {
     }
     final prefs = await SharedPreferences.getInstance();
     if (!enabled) {
-      await _plugin.cancelAll();
+      if (_nativeIos) {
+        await _iosPermissions.invokeMethod<void>('cancelAll');
+      } else {
+        await _plugin.cancelAll();
+      }
       await prefs.remove('reminder_ids');
       return;
     }
@@ -172,9 +198,21 @@ class ReminderService {
     final planned = planReminders(allItems, now: now, hour: hour);
     final ids = planned.map((r) => r.id.toString()).toSet();
     final previous = prefs.getStringList('reminder_ids') ?? [];
-    final pending = await _plugin.pendingNotificationRequests();
-    for (final id in {...previous, ...pending.map((r) => r.id.toString())}) {
-      if (!ids.contains(id)) await _plugin.cancel(int.parse(id));
+    final pendingIds = _nativeIos
+        ? (await _iosPermissions.invokeListMethod<int>('pendingIds') ?? <int>[])
+        : (await _plugin.pendingNotificationRequests()).map((r) => r.id).toList();
+    final obsolete = {...previous, ...pendingIds.map((id) => id.toString())}
+        .where((id) => !ids.contains(id))
+        .map(int.parse)
+        .toList();
+    if (_nativeIos) {
+      if (obsolete.isNotEmpty) {
+        await _iosPermissions.invokeMethod<void>('cancelIds', {'ids': obsolete});
+      }
+    } else {
+      for (final id in obsolete) {
+        await _plugin.cancel(id);
+      }
     }
     await prefs.setStringList('reminder_ids', ids.toList());
     for (final reminder in planned) {
@@ -193,12 +231,18 @@ class ReminderService {
       final key = 'catchup_shown_${item.id}';
       final stamp = '${sqlDate(item.dueDate)}:${missed.title}';
       if (prefs.getString(key) != stamp) {
-        await _plugin.show(
-          missed.id,
-          missed.title,
-          missed.body,
-          _urgentDetails,
-        );
+        if (_nativeIos) {
+          await _iosPermissions.invokeMethod<void>('showNow', {
+            'id': missed.id, 'title': missed.title, 'body': missed.body,
+          });
+        } else {
+          await _plugin.show(
+            missed.id,
+            missed.title,
+            missed.body,
+            _urgentDetails,
+          );
+        }
         await prefs.setString(key, stamp);
       }
     }
@@ -206,6 +250,10 @@ class ReminderService {
 
   Future<bool> permissionGranted() async {
     if (!_ready) return false;
+    if (_nativeIos) {
+      final status = await _iosAuthorizationStatus();
+      return status == 'authorized' || status == 'provisional';
+    }
     final android = _plugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
@@ -245,12 +293,20 @@ class ReminderService {
     if (!await requestPermissions()) {
       throw StateError(await permissionFailureMessage());
     }
-    await _plugin.show(
-      2147483646,
-      'VADESİ test bildirimi',
-      'Telefon bildirim bağlantısı çalışıyor.',
-      _urgentDetails,
-    );
+    if (_nativeIos) {
+      await _iosPermissions.invokeMethod<void>('showNow', {
+        'id': 2147483646,
+        'title': 'VADESİ test bildirimi',
+        'body': 'Telefon bildirim bağlantısı çalışıyor.',
+      });
+    } else {
+      await _plugin.show(
+        2147483646,
+        'VADESİ test bildirimi',
+        'Telefon bildirim bağlantısı çalışıyor.',
+        _urgentDetails,
+      );
+    }
   }
 
   Future<void> _schedule(
@@ -262,6 +318,16 @@ class ReminderService {
     required bool urgent,
   }) async {
     if (!when.isAfter(now)) return;
+    if (_nativeIos) {
+      await _iosPermissions.invokeMethod<void>('schedule', {
+        'id': id,
+        'epochMillis': when.millisecondsSinceEpoch,
+        'title': title,
+        'body': body,
+        'urgent': urgent,
+      });
+      return;
+    }
     const normal = AndroidNotificationDetails(
       'vadesi_normal',
       'Ödeme hatırlatmaları',
