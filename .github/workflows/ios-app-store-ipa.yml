@@ -1,7 +1,7 @@
 name: VADE - Free iOS App Store IPA
 
 # This workflow is manual-only, so it won't waste macOS build time on every push.
-# It is registered on main but checks out the latest app from the development branch.
+# App Store builds use the reviewed main branch as the source of truth.
 on:
   workflow_dispatch:
 
@@ -33,10 +33,10 @@ jobs:
             fi
           done
 
-      - name: Checkout latest VADE development code
+      - name: Checkout VADE main release code
         uses: actions/checkout@v5
         with:
-          ref: codex/vadesi-platform-upgrade
+          ref: main
           persist-credentials: false
 
       - name: Show source revision
