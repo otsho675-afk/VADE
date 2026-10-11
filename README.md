@@ -1,69 +1,105 @@
-# VADESİ — Taksit, fatura ve alacak takipçisi
+# VADESİ — Taksit, fatura ve alacak takibi
 
-**Flutter / Android / iOS — yerel SQLite veritabanı — sunucu gerektirmez.**
+Flutter ile Android, iOS ve web için kişisel ödeme takip uygulaması.
 
-## Windows kurulum (en kısa yol)
+## 1.1 geliştirmeleri
 
-1. ZIP dosyasını bir klasöre çıkarın, VS Code ile klasörü açın.
-2. Flutter SDK ve Android SDK kurulu olsun. VS Code terminalinde:
+- Logo bölümündeki geçersiz const ifadeleri düzeltildi.
+- Flutter yerelleştirmeleriyle uyumlu intl ^0.20.3.
+- Android/iOS SQLite, web için SQLite WASM + tarayıcı depolaması, Windows/Linux için SQLite FFI.
+- Günlük ödeme takvimi ve seçili ayın borç/alacak toplamları.
+- JSON yedekleme, doğrulanan yedeği işlem içinde geri yükleme, CSV dışa aktarma.
+- Gecikmiş tüm taksitleri içeren toplam; borç dağılımından alacakların ayrılması.
+- Taksit, fatura, abonelik, borç/alacak, arama, filtre, geçmiş, geri alma, IBAN kontrolü ve temalar.
+- Yerel bildirimler yalnızca Android/iOS'ta etkinleştirilebilir; Türkiye saatine göre planlanır.
+- Veri tabanı işlemleri ve farklı ekran genişlikleri için testler.
 
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File .\scripts\kur.ps1
-   flutter run
-   ```
+## Kurulum
 
-   Kurulum betiği Flutter'ın **resmî Android/iOS platform iskeletini otomatik oluşturur**, bildirim izinlerini / yeniden başlatma alıcılarını ve Android tarih API desugaring ayarını ekler, paketleri indirir ve uygulama simgesini üretir.
+Güncel **Flutter stable**, Android için Android SDK/JDK 17; iOS için macOS ve Xcode gerekir.
 
-3. Sonradan: `flutter pub get` / `flutter run` yeterli.
-4. Test: `flutter test`.
-5. APK: `flutter build apk --release`.
-6. Google Play AAB: `flutter build appbundle --release` (yayına almak için ayrıca kendi imzalama anahtarınız gerekir).
-
-**macOS / Linux:** `bash scripts/kur.sh` ardından `flutter run`. iOS uygulamasını derlemek ve imzalamak için Mac + Xcode gerekir.
-
-> Not: Bu çalışma ortamında Flutter SDK mevcut olmadığı için derleme yapılmadı. İlk kurulum sırasında paket sürümleri Flutter sürümünüze göre güncellenmeyi gerektirebilir. Android/iOS klasörleri bilinçli olarak ZIP'e sabitlenmedi; tek komutla kullandığınız Flutter SDK'nın güncel resmî şablonundan üretilir.
-
-## Özellikler
-
-- Resmî ve sade arayüz; açık / koyu / sistem teması.
-- Mobil ve tablet/masaüstü genişliğine uyarlanabilen ekranlar, mobilde alt menü, geniş ekranda sol menü.
-- Taksit, elektrik / su / doğalgaz / internet / telefon faturası, abonelik, tek seferlik ödeme.
-- Kişisel borçlar **ve alacaklar**, IBAN / karşı taraf / not.
-- Taksit sayısı, taksit tutarı ve ilk ödeme tarihi; tüm taksitler otomatik oluşturulur.
-- Ayın 29/30/31'indeki taksitler kısa aylarda ayın son gününe ayarlanır.
-- “Ödendi / Tahsil edildi” düğmesi sonraki taksite geçer; faturada sonraki ay oluşturulur.
-- Ödeme geçmişi, geri alma, düzenleme, vade değiştirme, silme.
-- SQLite: telefon kapansa bile kayıtlar kalır; sunucu veya kullanıcı hesabı yoktur.
-- Android/iOS yerel zamanlanmış hatırlatma: 5 gün önce, 1 gün önce, vade günü. Varsayılan 09.00; ayarlardan değiştirilebilir.
-- Tüm bekleyen ödeme kartlarında arama, filtre, rapor ve özet.
-- IBAN kopyalama, Türkiye IBAN kontrolü, kuruş bazlı parasal kayıt.
-
-## Önemli davranışlar
-
-- Ödeme onayı **gerçek para transferi yapmaz**, yalnızca kullanıcının kaydını günceller.
-- Faturalar kurumlardan **otomatik sorgulanmaz**. Kullanıcı tutarı ve vadesini girer, sonraki dönemin planı oluşturulur. Kurumların fatura API entegrasyonu bu ilk sürüme dahil değildir.
-- İlk ödeme kaydından sonra bildirim izni için uygulama kullanıcıya sorar; ayrıca **Ayarlar** bölümünden yönetilebilir. OS kısıtları, telefonun kapalı olması ve pil yönetimi nedeniyle bildirimlerin kesin zamanında gönderimi garanti değildir.
-- Uygulama Türkçe hedefli ve varsayılan `Europe/Istanbul` saat dilimiyle planlar. Türkiye dışı kullanıcılar için dinamik saat dilimi desteği eklenmelidir.
-- Veritabanı **şifreli değildir**. Hassas verileri bu sürümde yalnızca cihazın fiziksel/sistem güvenliğine güvenerek saklayın. Üretim sürümünde şifreli yerel saklama, yedekleme ve kurtarma geliştirmesi önerilir.
-- Android/iOS bildirim davranışları gerçek cihaz üzerinde doğrulanmalıdır. iOS bekleyen yerel bildirim sınırı için en yakın 20 planın hatırlatmaları hazırlanır.
-- Kayıtlar cihazdan silinir veya uygulama kaldırılırsa ayrıca yedek olmadan geri getirilemez.
-
-## Proje yapısı
-
-```text
-lib/
-  main.dart
-  models/payment.dart
-  data/local_database.dart
-  services/reminder_service.dart
-  state/app_store.dart
-  ui/app_theme.dart
-  ui/widgets/common.dart
-  ui/screens/home_shell.dart
-  ui/screens/payment_form_page.dart
-  ui/screens/payment_detail_page.dart
-scripts/kur.ps1
-scripts/kur.sh
-scripts/patch_android.py
-test/payment_logic_test.dart
+Windows:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\kur.ps1
+flutter run
 ```
+
+macOS/Linux:
+```sh
+bash scripts/kur.sh
+flutter run
+```
+
+Betiğin oluşturduğu Android/iOS dosyaları mevcut platform klasörlerini değiştirmez.
+iOS için macOS'ta kurulum betiğini çalıştırın. Web SQLite dosyalarını yenilemek için:
+
+```sh
+flutter pub get
+dart run sqflite_common_ffi_web:setup
+flutter run -d chrome
+```
+
+Web sürümünde kayıtlar kullanılan tarayıcı ve site adresine bağlıdır. Tarayıcı verilerini
+temizlemek kayıtları siler. HTTPS veya localhost üzerinden çalıştırın; düzenli JSON yedeği alın.
+Web ve masaüstünde arka plan yerel bildirimleri sunulmaz.
+
+## Doğrulama ve indirmeler
+
+[GitHub Actions](https://github.com/otsho675-afk/VADE/actions) her değişiklikte:
+1. Bağımlılık çözümleme, Flutter analyze, testler ve web release derlemesi.
+2. Android debug APK derlemesi.
+3. iOS release derlemesi (imzasız).
+4. Android/iOS iskeletleri ve web SQLite dosyalarını içeren VADESI.zip paketi.
+
+Başarılı çalışmanın **Artifacts** bölümünden indirin:
+- VADESI-Complete-Source: tam kaynak ZIP'i.
+- VADESI-Android-Debug: cihazda denemek için APK.
+- VADESI-Web: web sunucusuna koyulabilecek çıktı.
+- VADESI-iOS-Unsigned: imzalanmamış iOS uygulaması; telefona doğrudan kurulamaz.
+
+Kontrollerin sonucu Actions'ta görülür; iş akışının bulunması testlerin geçtiği anlamına gelmez.
+```sh
+flutter analyze --no-fatal-infos
+flutter test
+flutter build web --release
+```
+
+## Mağaza yayını
+
+Android debug APK, Google Play yayın paketi değildir. Play için kendi uygulama kimliğiniz,
+yükleme anahtarınız ve release imzalama yapılandırmanızla AAB üretin.
+iOS için Apple Developer ekibi, benzersiz bundle ID, sertifikalar ve provisioning gerekir.
+Varsayılan com.vadesi.vadesi kimliğini ilk yayından önce kendi kimliğinizle değiştirin.
+İmzalama anahtarlarını veya hesap parolalarını depoya eklemeyin.
+
+Mağaza açıklamaları, gizlilik politikası, ekran görüntüleri, veri güvenliği formları ve
+gerçek cihaz testleri yayın öncesinde tamamlanmalıdır. SQLite ve JSON yedekleri şifreli değildir.
+Uygulama bankadan para göndermez ve kurum borçlarını otomatik sorgulamaz.
+
+Bildirimler Türkiye saat diliminde tam saatlere planlanır. İşletim sistemi izinleri ve pil
+yönetimi teslimatı etkileyebilir. Her planın en eski ödenmemiş kaydı için 5 gün önce, 1 gün önce, vade günü ve vade ertesi uyarıları hazırlanır; en yakın 60 bildirim saklanır. Gecikmiş kayıtlar yeniden planlandığında seçili saatin bir sonraki gelişinde uyarılır.
+Fatura/aboneliklerde bir sonraki dönem, önceki dönem ödendiğinde oluşturulur.
+
+
+## Firebase, Premium ve yönetim paneli
+
+İsteğe bağlı bulut hizmetleri ve mağaza kurulumu için [Kurulum ve yayın kılavuzu](docs/KURULUM_VE_YAYIN.md). Firebase/OneSignal hesabı ve mağaza anahtarları bağlanmadan bulut/ödeme hizmetleri aktif değildir. Yerel takip çalışır.
+
+### Hesap bağlantısıyla Android APK
+
+Yerel Firebase ayarları hazırsa:
+powershell -ExecutionPolicy Bypass -File scripts/android-apk.ps1
+
+Bu betik config/firebase.android.json ayarlarını derlemeye dahil eder.
+Android için VADESİ Firebase istemci ayarları varsayılan olarak kaynakta bulunur; düz flutter build apk komutunda da hesap kaydı aktiftir. --dart-define değerleri bu varsayılanları değiştirebilir.
+iOS derlemesine de kendi FIREBASE_IOS_APP_ID değerini içeren ayar dosyası
+--dart-define-from-file ile verilmelidir.
+
+Bildirim almak için Ayarlar > Ödeme bildirimleri açık olmalı ve telefonun
+bildirim izni verilmelidir. Ödenen veya silinen kayıtların uyarıları kaldırılır.
+## VADESİ marka logosu ve animasyonlu açılış
+
+Android, iOS ve web aynı V sembolünü kullanır. Android/iOS'ta ilk açılış
+sistemin izin verdiği statik logoyla başlar; Flutter başladıktan sonra kısa
+logo animasyonu görünür. Derleme ve önbellek ayrıntıları:
+[Logo ve açılış kılavuzu](docs/BRANDING_VE_ACILIS.md).

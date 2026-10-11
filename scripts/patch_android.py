@@ -18,6 +18,10 @@ if manifest.exists():
             </intent-filter>
         </receiver>
     </application>''')
+    if 'android.permission.SCHEDULE_EXACT_ALARM' not in xml:
+        xml = xml.replace('<application', '<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />\n    <application')
+    if 'android.permission.INTERNET' not in xml:
+        xml = xml.replace('<application', '<uses-permission android:name="android.permission.INTERNET" />\n    <application')
     xml = xml.replace('android:label="vadesi"', 'android:label="VADESİ"')
     manifest.write_text(xml, encoding='utf8')
 

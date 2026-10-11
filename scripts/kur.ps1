@@ -24,6 +24,12 @@ try {
   $manifest = Join-Path $projectRoot 'android/app/src/main/AndroidManifest.xml'
   if (Test-Path $manifest) {
     $xml = Get-Content $manifest -Raw -Encoding UTF8
+    if (-not $xml.Contains('android.permission.SCHEDULE_EXACT_ALARM')) {
+      $xml = $xml.Replace('<application', '<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />' + [Environment]::NewLine + '    <application')
+    }
+    if (-not $xml.Contains('android.permission.INTERNET')) {
+      $xml = $xml.Replace('<application', "<uses-permission android:name=""android.permission.INTERNET"" />" + [Environment]::NewLine + '    <application')
+    }
     if (-not $xml.Contains('android.permission.POST_NOTIFICATIONS')) {
       $xml = $xml.Replace('<application', "<uses-permission android:name=`"android.permission.POST_NOTIFICATIONS`" />`n    <uses-permission android:name=`"android.permission.RECEIVE_BOOT_COMPLETED`" />`n    <application")
     }
@@ -40,6 +46,9 @@ try {
         </receiver>
 '@
       $xml = $xml.Replace('</application>', $receivers + '    </application>')
+    }
+    if (-not $xml.Contains('android.permission.INTERNET')) {
+      $xml = $xml.Replace('<application', "<uses-permission android:name=`"android.permission.INTERNET`" />`n    <application")
     }
     $xml = $xml.Replace('android:label="vadesi"', 'android:label="VADESİ"')
     [System.IO.File]::WriteAllText($manifest, $xml, (New-Object System.Text.UTF8Encoding $false))
@@ -67,10 +76,45 @@ try {
     [System.IO.File]::WriteAllText($groovy, $gradle, (New-Object System.Text.UTF8Encoding $false))
   }
 
+  # iOS foreground delivery must also be configured on Windows-generated hosts.
+  $delegatePath = Join-Path $projectRoot 'ios/Runner/AppDelegate.swift'
+  if (Test-Path -LiteralPath $delegatePath) {
+    $delegate = Get-Content -LiteralPath $delegatePath -Raw -Encoding UTF8
+    if (-not $delegate.Contains('import UserNotifications')) {
+      $delegate = 'import UserNotifications' + [Environment]::NewLine + $delegate
+    }
+    if (-not $delegate.Contains('UNUserNotificationCenter.current().delegate')) {
+      if (-not $delegate.Contains('return super.application(')) {
+        throw 'AppDelegate launch method changed; configure notification delegate manually.'
+      }
+      $delegate = $delegate.Replace('return super.application(',
+        'UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate' +
+        [Environment]::NewLine + '    return super.application(')
+    }
+    [System.IO.File]::WriteAllText($delegatePath, $delegate, (New-Object System.Text.UTF8Encoding $false))
+  }
   flutter pub get
   if ($LASTEXITCODE -ne 0) { throw 'Paketler indirilemedi. Baglantinizi ve Flutter SDK surumunu kontrol edin.' }
+  dart run sqflite_common_ffi_web:setup
+  if ($LASTEXITCODE -ne 0) { throw 'Web SQLite dosyalari hazirlanamadi.' }
   dart run flutter_launcher_icons
-  if ($LASTEXITCODE -ne 0) { Write-Warning 'Uygulama simgesi olusturulamadi; uygulama yine calisir.' }
+  if ($LASTEXITCODE -ne 0) { throw 'Uygulama simgesi olusturulamadi.' }
+  $colorsPath = Join-Path $projectRoot 'android/app/src/main/res/values/colors.xml'
+  try {
+    [xml]$colorsDocument = Get-Content -LiteralPath $colorsPath -Raw -Encoding UTF8
+    if ($colorsDocument.DocumentElement.Name -ne 'resources') {
+      throw 'XML kok etiketi resources degil.'
+    }
+    foreach ($colorName in @('vadesi_splash_background', 'ic_launcher_background')) {
+      $node = $colorsDocument.SelectSingleNode("/resources/color[@name='$colorName']")
+      if ($null -eq $node -or $node.InnerText.Trim() -ne '#243F56') {
+        throw "$colorName bulunamadi veya marka rengi yanlis."
+      }
+    }
+    Write-Host 'VADESI Android renk kaynaklari dogrulandi.'
+  } catch {
+    throw "Android renk XML dosyasi bozuk: $colorsPath. Hata: $_"
+  }
   Write-Host ''
   Write-Host 'HAZIR! Uygulamayi baslatmak icin: flutter run'
   Write-Host 'APK: flutter build apk --release'

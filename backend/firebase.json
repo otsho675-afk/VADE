@@ -1,0 +1,39 @@
+{
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "vadesi",
+      "runtime": "nodejs22"
+    }
+  ],
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "database": {
+    "rules": "database.rules.json"
+  },
+  "hosting": {
+    "public": "admin",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "Referrer-Policy",
+            "value": "same-origin"
+          }
+        ]
+      }
+    ]
+  }
+}

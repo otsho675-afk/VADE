@@ -1,0 +1,60 @@
+workflows:
+  ios-simulator:
+    name: VADESI iOS simulator and screenshot
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    environment:
+      flutter: 3.47.7
+      xcode: latest
+      cocoapods: default
+    # Simulator screenshots are intentionally manual-only. GitHub Actions
+    # already verifies Flutter and iOS on each push, without consuming
+    # additional Codemagic Mac build capacity.
+    scripts:
+      - name: Prepare dependencies and native assets
+        script: |
+          set -euo pipefail
+          bash scripts/kur.sh
+      - name: Verify Flutter
+        script: |
+          set -euo pipefail
+          flutter analyze --no-fatal-infos
+          flutter test
+      - name: Build iOS simulator application
+        script: flutter build ios --simulator --debug
+      - name: Capture actual iPhone simulator screen
+        script: python3 scripts/ios_simulator_screenshot.py
+    artifacts:
+      - build/ios/iphonesimulator/*.app
+      - build/ios-screenshots/*.png
+      - build/ios-screenshots/*.json
+  ios-app-store:
+    name: VADESI signed iOS App Store build
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: 3.47.7
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.vadesi.vadesi
+    scripts:
+      - name: Prepare dependencies and native assets
+        script: |
+          set -euo pipefail
+          bash scripts/kur.sh
+      - name: Verify Flutter
+        script: |
+          set -euo pipefail
+          flutter analyze --no-fatal-infos
+          flutter test
+      - name: Apply uploaded Apple distribution profiles
+        script: xcode-project use-profiles
+      - name: Build signed IPA
+        script: |
+          set -euo pipefail
+          flutter build ipa --release --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/ios/archive/*.xcarchive

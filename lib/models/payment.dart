@@ -152,14 +152,15 @@ DateTime addMonthsAnchored(DateTime start, int months, int anchorDay) {
 
 String sqlDate(DateTime date) => DateFormat('yyyy-MM-dd').format(date);
 String formatDate(DateTime date) => DateFormat('dd.MM.yyyy').format(date);
-String formatMoney(int cents) => NumberFormat.currency(locale: 'tr_TR', symbol: '₺', decimalDigits: 2).format(cents / 100);
-String formatCompactMoney(int cents) => NumberFormat.currency(locale: 'tr_TR', symbol: '₺', decimalDigits: cents % 100 == 0 ? 0 : 2).format(cents / 100);
+String formatMoney(int cents) => NumberFormat.currency(locale: 'tr', symbol: '₺', decimalDigits: 2).format(cents / 100);
+String formatCompactMoney(int cents) => NumberFormat.currency(locale: 'tr', symbol: '₺', decimalDigits: cents % 100 == 0 ? 0 : 2).format(cents / 100);
 
 int? parseMoneyToCents(String raw) {
   final input = raw.trim().replaceAll('₺', '').replaceAll(' ', '');
   if (input.isEmpty) return null;
   String canonical = input;
   if (canonical.contains(',') && canonical.contains('.')) {
+    if (!RegExp(r'^\d{1,3}(\.\d{3})+,\d{1,2}$').hasMatch(canonical)) return null;
     canonical = canonical.replaceAll('.', '').replaceAll(',', '.');
   } else if (canonical.contains(',')) {
     canonical = canonical.replaceAll(',', '.');
@@ -169,10 +170,11 @@ int? parseMoneyToCents(String raw) {
   if (!RegExp(r'^\d+(\.\d{1,2})?$').hasMatch(canonical)) return null;
   final parts = canonical.split('.');
   final whole = int.tryParse(parts[0]);
-  if (whole == null) return null;
+  if (whole == null || whole > 9999999999) return null;
   final fractional = parts.length > 1 ? int.tryParse(parts[1].padRight(2, '0')) : 0;
   if (fractional == null) return null;
-  return whole * 100 + fractional;
+  final cents = whole * 100 + fractional;
+  return cents > 999999999999 ? null : cents;
 }
 
 bool isValidIban(String raw) {
@@ -193,4 +195,15 @@ bool isValidIban(String raw) {
     remainder = (remainder * 10 + digit - 48) % 97;
   }
   return remainder == 1;
+}
+
+void validateDraft(PlanDraft draft) {
+  if (draft.title.trim().isEmpty || draft.title.length > 200 ||
+      draft.party.length > 200 || draft.note.length > 5000 ||
+      !isValidIban(draft.iban) ||
+      draft.amountCents <= 0 || draft.amountCents > 999999999999 ||
+      draft.count < 1 || draft.count > 240 ||
+      draft.startDate.year < 2020 || draft.startDate.year > 2100) {
+    throw const FormatException('Ödeme bilgilerini kontrol edin.');
+  }
 }

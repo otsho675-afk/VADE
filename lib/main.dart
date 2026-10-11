@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/semantics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart';
 import 'state/app_store.dart';
 import 'ui/app_theme.dart';
-import 'ui/screens/home_shell.dart';
+import 'ui/screens/launch_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  Intl.defaultLocale = 'tr_TR';
+  // Keep the web interface available to screen readers for the app lifetime.
+  if (kIsWeb) SemanticsBinding.instance.ensureSemantics();
+  Intl.defaultLocale = 'tr';
   runApp(const VadesiApp());
 }
 
@@ -38,8 +42,8 @@ class _VadesiAppState extends State<VadesiApp> {
     return AnimatedBuilder(animation: _store, builder: (_, __) => MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'VADESİ · Ödeme Takibi',
-      locale: const Locale('tr', 'TR'),
-      supportedLocales: const [Locale('tr', 'TR')],
+      locale: const Locale('tr'),
+      supportedLocales: const [Locale('tr')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -48,7 +52,7 @@ class _VadesiAppState extends State<VadesiApp> {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: _store.themeMode,
-      home: HomeShell(store: _store),
+      home: LaunchScreen(store: _store),
     ));
   }
 }

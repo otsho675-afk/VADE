@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../models/payment.dart';
 import '../../state/app_store.dart';
 import '../widgets/common.dart';
+import '../widgets/wheel_date_picker.dart';
 import 'payment_form_page.dart';
 
 class PaymentDetailPage extends StatelessWidget {
@@ -34,9 +35,9 @@ class PaymentDetailPage extends StatelessWidget {
   }
 
   Future<void> _editDate(BuildContext context, DueItem item) async {
-    final choice = await showDatePicker(
+    final choice = await showWheelDatePicker(
       context: context,
-      firstDate: DateTime(2020), lastDate: DateTime(2100),
+      firstDate: DateTime(2020), lastDate: DateTime(2120, 12, 31),
       initialDate: item.dueDate,
       helpText: 'Bu ödemenin vadesini değiştir',
     );
@@ -55,8 +56,8 @@ class PaymentDetailPage extends StatelessWidget {
       animation: store,
       builder: (context, _) {
         final payments = store.planItems(planId);
-        if (payments.isEmpty) return Scaffold(appBar: AppBar(title: const Text('Ödeme detayı')),
-          body: const EmptyView(title: 'Kayıt bulunamadı', message: 'Bu ödeme silinmiş olabilir.', icon: Icons.info_outline));
+        if (payments.isEmpty) { return Scaffold(appBar: AppBar(title: const Text('Ödeme detayı')),
+          body: const EmptyView(title: 'Kayıt bulunamadı', message: 'Bu ödeme silinmiş olabilir.', icon: Icons.info_outline)); }
         final plan = payments.first.plan;
         final remaining = payments.where((p) => !p.isPaid).toList();
         final paid = payments.where((p) => p.isPaid).toList();
@@ -147,7 +148,7 @@ class PaymentDetailPage extends StatelessWidget {
                 ],
               ))),
               const SizedBox(height: 23),
-              SectionTitle('Ödeme takvimi'),
+              const SectionTitle('Ödeme takvimi'),
               if (remaining.isEmpty)
                 const Card(child: Padding(padding: EdgeInsets.all(22), child: Text('Bu plandaki tüm ödemeler tamamlandı.'))),
               for (final occurrence in payments) ...[

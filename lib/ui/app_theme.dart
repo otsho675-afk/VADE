@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const ink = Color(0xFF1F2B38);
-  static const navy = Color(0xFF284967);
-  static const darkBg = Color(0xFF101820);
-  static const darkCard = Color(0xFF1B2632);
+  static const ink = Color(0xFF193348);
+  static const navy = Color(0xFF284F6A);
+  static const darkBg = Color(0xFF0E1D2A);
+  static const darkCard = Color(0xFF1A2E40);
 
   static ThemeData light() => _theme(
     Brightness.light,
-    const Color(0xFF284967),
-    const Color(0xFFF4F6F8),
+    const Color(0xFF245E81),
+    const Color(0xFFF3F7FA),
     Colors.white,
   );
 
   static ThemeData dark() => _theme(
     Brightness.dark,
-    const Color(0xFFA9C7E3),
+    const Color(0xFFA8D8F1),
     darkBg,
     darkCard,
   );
@@ -29,7 +29,7 @@ class AppTheme {
       surface: card,
       error: dark ? const Color(0xFFFFA69D) : const Color(0xFFAD3C40),
     );
-    final border = dark ? const Color(0xFF354353) : const Color(0xFFE3E8EE);
+    final border = dark ? const Color(0xFF375268) : const Color(0xFFDDE7EE);
     final titleColor = dark ? const Color(0xFFF5F7F9) : ink;
     return ThemeData(
       useMaterial3: true,
@@ -49,7 +49,7 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(24),
           side: BorderSide(color: border),
         ),
       ),
@@ -57,17 +57,17 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         isDense: false,
         filled: true,
-        fillColor: dark ? const Color(0xFF202E3B) : const Color(0xFFF7F9FB),
+        fillColor: dark ? const Color(0xFF24394C) : const Color(0xFFF7FAFC),
         contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: border)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: border)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primary, width: 1.5)),
-        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: scheme.error)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: border)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: border)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: primary, width: 1.5)),
+        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: scheme.error)),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size(0, 48),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          minimumSize: const Size(0, 54),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
         ),
       ),
@@ -75,7 +75,7 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(0, 44),
           side: BorderSide(color: border),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
@@ -92,7 +92,7 @@ class AppTheme {
       ),
       bottomSheetTheme: BottomSheetThemeData(backgroundColor: card, surfaceTintColor: Colors.transparent),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: dark ? const Color(0xFF354353) : const Color(0xFF263C50),
+        backgroundColor: dark ? const Color(0xFF375268) : const Color(0xFF263C50),
         contentTextStyle: const TextStyle(color: Colors.white),
         behavior: SnackBarBehavior.floating,
       ),

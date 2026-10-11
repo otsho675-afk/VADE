@@ -1,9 +1,18 @@
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
+import 'account_page.dart';
+import 'auth_page.dart';
+import '../widgets/brand_mark.dart';
+import '../widgets/wheel_date_picker.dart';
 import '../../models/payment.dart';
+import '../../services/ledger_insights.dart';
 import '../../state/app_store.dart';
+import '../../services/cloud_config.dart';
 import '../widgets/common.dart';
 import 'payment_detail_page.dart';
 import 'payment_form_page.dart';
+import 'backup_page.dart';
+import 'calendar_page.dart';
 
 class HomeShell extends StatefulWidget {
   final AppStore store;
@@ -16,6 +25,8 @@ class _HomeShellState extends State<HomeShell> {
   int _selected = 0;
   String _search = '';
   String _filter = 'Tümü';
+  LedgerSort _sort = LedgerSort.nearest;
+  bool _showAllInstallments = false;
   final _searchController = TextEditingController();
 
   AppStore get store => widget.store;
@@ -29,7 +40,7 @@ class _HomeShellState extends State<HomeShell> {
   Future<void> _openAdd() async {
     final created = await Navigator.push<bool>(context,
       MaterialPageRoute(builder: (_) => PaymentFormPage(store: store)));
-    if (!mounted || created != true || store.notificationsEnabled) return;
+    if (!mounted || created != true || store.notificationsEnabled || !store.supportsNotifications) return;
     final want = await confirmAction(context,
       title: 'Hatırlatmaları etkinleştir',
       body: 'Ödemeleriniz için 5 gün önce, 1 gün önce ve vade günü cihaz bildirimi almak ister misiniz?',
@@ -73,10 +84,16 @@ class _HomeShellState extends State<HomeShell> {
     final width = MediaQuery.sizeOf(context).width;
     final desktop = width >= 960;
     final extended = width >= 1240;
-    return AnimatedBuilder(animation: store, builder: (context, _) {
+    return AnimatedBuilder(animation: Listenable.merge([store, store.cloud]), builder: (context, _) {
       if (store.loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-      if (store.error != null) return Scaffold(body: SafeArea(child: EmptyView(
-        title: 'Uygulama açılamadı', message: store.error!, icon: Icons.error_outline)));
+      if (store.error != null) { return Scaffold(body: SafeArea(child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          EmptyView(title: 'Uygulama açılamadı', message: store.error!, icon: Icons.error_outline),
+          FilledButton.icon(onPressed: store.initialize, icon: const Icon(Icons.refresh),
+            label: const Text('Yeniden dene')),
+        ],
+      ))); }
       return Scaffold(
         body: SafeArea(child: Row(children: [
           if (desktop) ...[
@@ -87,11 +104,11 @@ class _HomeShellState extends State<HomeShell> {
               onDestinationSelected: (v) => setState(() => _selected = v),
               leading: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 19, 12, 34),
-                child: extended ? const Row(mainAxisSize: MainAxisSize.min, children: [
-                  ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.asset('assets/images/vadesi_mark.png', width: 30, height: 30)),
-                  SizedBox(width: 10),
-                  Text('VADESİ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: .8)),
-                ]) : const ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.asset('assets/images/vadesi_mark.png', width: 30, height: 30)),
+                child: extended ? Row(mainAxisSize: MainAxisSize.min, children: [
+                  const BrandMark(size: 36),
+                  const SizedBox(width: 10),
+                  const Text('VADESİ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: .8)),
+                ]) : const BrandMark(size: 36),
               ),
               destinations: const [
                 NavigationRailDestination(icon: Icon(Icons.grid_view_outlined),
@@ -116,12 +133,20 @@ class _HomeShellState extends State<HomeShell> {
                   Container(padding: const EdgeInsets.all(7), decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primary.withValues(alpha: .09),
                     borderRadius: BorderRadius.circular(10)),
-                    child: ClipRRect(borderRadius: BorderRadius.circular(7), child: Image.asset('assets/images/vadesi_mark.png', width: 25, height: 25))),
+                    child: const BrandMark(size: 30)),
                   const SizedBox(width: 9),
                   Text('VADESİ', style: Theme.of(context).textTheme.titleLarge?.copyWith(letterSpacing: .8)),
                 ] else Text(['Genel bakış', 'Ödemeler', 'Raporlar', 'Ayarlar'][_selected],
                   style: Theme.of(context).textTheme.headlineSmall),
                 const Spacer(),
+                IconButton(tooltip: store.cloud.user == null ? 'Giriş yap / Üye ol' : 'Hesabım',
+                  icon: const Icon(Icons.person_outline_rounded),
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => AccountPage(store: store)))),
+                IconButton(tooltip: 'Ödeme takvimi', icon: const Icon(Icons.calendar_month_outlined),
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => CalendarPage(store: store)))),
+
                 if (desktop) FilledButton.icon(onPressed: _openAdd, icon: const Icon(Icons.add_rounded),
                   label: const Text('Yeni ödeme'))
                 else IconButton.filledTonal(icon: const Icon(Icons.add_rounded),
@@ -168,22 +193,101 @@ class _HomeShellState extends State<HomeShell> {
     Text('Taksit, fatura ve alacaklarınızı zamanında takip edin.',
       style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
     const SizedBox(height: 22),
+    Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
+          colors: [Color(0xFF23465F), Color(0xFF397C9A)]),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [BoxShadow(color: const Color(0xFF23465F).withValues(alpha: .18),
+          blurRadius: 24, offset: const Offset(0, 10))],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Expanded(child: Text('BU AYA KADAR ÖDENECEK',
+            style: TextStyle(color: Color(0xFFDCEEF8), fontSize: 11, letterSpacing: 1.4, fontWeight: FontWeight.w600))),
+          const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFFDCEEF8)),
+        ]),
+        const SizedBox(height: 14),
+        FittedBox(fit: BoxFit.scaleDown, child: Text(formatCompactMoney(store.monthOutgoing),
+          style: const TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w800, letterSpacing: -1))),
+        const SizedBox(height: 8),
+        const Text('Vadesi gelen ve gecikmiş borçların toplamı',
+          style: TextStyle(color: Color(0xFFDCEEF8), fontSize: 12)),
+        const SizedBox(height: 20),
+        Wrap(spacing: 12, runSpacing: 10, children: [
+          FilledButton.icon(style: FilledButton.styleFrom(backgroundColor: const Color(0xFFD5EDFD),
+              foregroundColor: const Color(0xFF23465F)),
+            onPressed: _openAdd, icon: const Icon(Icons.add_rounded), label: const Text('Ödeme ekle')),
+          TextButton.icon(style: TextButton.styleFrom(foregroundColor: Colors.white),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CalendarPage(store: store))),
+            icon: const Icon(Icons.calendar_month_outlined), label: const Text('Takvimim')),
+        ]),
+      ]),
+    ),
+    const SizedBox(height: 16),
     LayoutBuilder(builder: (context, constraints) {
-      final columns = constraints.maxWidth >= 740 ? 3 : constraints.maxWidth >= 420 ? 2 : 1;
-      final gap = 12.0;
-      final w = (constraints.maxWidth - (columns - 1) * gap) / columns;
-      final cards = [
-        SummaryTile(title: 'Bu aya kadar ödenecek', value: formatCompactMoney(store.monthOutgoing),
-          footer: 'Vadesi gelen ve gecikmiş borçlar', icon: Icons.account_balance_wallet_outlined),
-        SummaryTile(title: 'Beklenen tahsilat', value: formatCompactMoney(store.monthIncoming),
-          footer: 'Bu aya kadar beklenen alacaklar', icon: Icons.south_west_rounded),
-        SummaryTile(title: 'Geciken kayıt', value: '${store.lateCount}',
-          footer: store.lateCount == 0 ? 'Gecikmiş ödeme yok' : 'Kontrol etmeniz gereken ödeme var',
-          icon: Icons.warning_amber_rounded),
-      ];
-      return Wrap(spacing: gap, runSpacing: gap, children: [for (final card in cards) SizedBox(width: w, child: card)]);
+      final width = constraints.maxWidth < 320 ? constraints.maxWidth : (constraints.maxWidth - 12) / 2;
+      return Wrap(spacing: 12, runSpacing: 12, children: [
+        SizedBox(width: width, child: SummaryTile(title: 'Beklenen tahsilat', value: formatCompactMoney(store.monthIncoming),
+          footer: 'Bu aya kadar alacaklar', icon: Icons.south_west_rounded)),
+        SizedBox(width: width, child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: store.lateCount == 0 ? null : () => setState(() {
+            _selected = 1;
+            _filter = 'Gecikenler';
+            _showAllInstallments = true;
+          }),
+          child: SummaryTile(title: 'Geciken kayıt', value: '${store.lateCount}',
+            footer: store.lateCount == 0 ? 'Her şey yolunda' : 'Dokun, geciken taksitleri gör',
+            icon: Icons.schedule_rounded),
+        )),
+        SizedBox(width: width, child: SummaryTile(title: 'Geciken borç', value: formatCompactMoney(store.lateOutgoingAmount),
+          footer: 'Vadesi geçmiş ödenmemiş borçlar', icon: Icons.warning_amber_rounded)),
+        SizedBox(width: width, child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () => setState(() { _selected = 1; _filter = '7 Gün'; _showAllInstallments = true; }),
+          child: SummaryTile(title: 'Önümüzdeki 7 gün', value: formatCompactMoney(store.next7DaysOutgoing),
+            footer: 'Dokun, bu haftanın ödemelerini gör', icon: Icons.date_range_outlined),
+        )),
+      ]);
     }),
-    const SizedBox(height: 27),
+    if (store.cloud.user == null) ...[
+      const SizedBox(height: 18),
+      Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('VADESİ hesabınla devam et', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 6),
+          const Text('Üyeliğini ve isteğe bağlı bulut yedeğini tek yerden yönet.'),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, children: [
+            TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => AuthPage(store: store))), child: const Text('Giriş yap')),
+            TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => AuthPage(store: store, register: true))), child: const Text('Üye ol')),
+          ]),
+        ],
+      ))),
+    ],
+    const SizedBox(height: 17),
+    Wrap(spacing: 8, runSpacing: 8, children: [
+      ActionChip(
+        avatar: const Icon(Icons.today_rounded, size: 18),
+        label: const Text('Bugünün ödemeleri'),
+        onPressed: () => setState(() {
+          _selected = 1;
+          _filter = 'Bugün';
+          _showAllInstallments = true;
+        }),
+      ),
+      ActionChip(
+        avatar: const Icon(Icons.bar_chart_rounded, size: 18),
+        label: const Text('6 aylık nakit akışı'),
+        onPressed: () => setState(() => _selected = 2),
+      ),
+    ]),
+    const SizedBox(height: 22),
     SectionTitle('Sıradaki ödemeler', trailing: TextButton(onPressed: () => setState(() => _selected = 1),
       child: const Text('Tümünü gör'))),
     if (store.upcoming.isEmpty)
@@ -200,9 +304,9 @@ class _HomeShellState extends State<HomeShell> {
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Bildirimler', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 4),
-        Text(store.notificationsEnabled
-            ? '5 gün önce normal, 1 gün önce dikkat, vade günü son uyarı aktif.'
-            : 'Bildirimler kapalı. Ayarlar bölümünden açabilirsiniz.',
+        Text(store.reminderError ?? (store.notificationsEnabled
+            ? 'Vade öncesi, vade günü ve gecikme uyarıları planlandı.'
+            : 'Bildirimler kapalı. Ayarlar bölümünden açabilirsiniz.'),
           style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
       ])),
       TextButton(onPressed: () => setState(() => _selected = 3), child: const Text('Ayarla')),
@@ -217,35 +321,81 @@ class _HomeShellState extends State<HomeShell> {
     const SizedBox(height: 17),
     TextField(
       controller: _searchController,
+      textInputAction: TextInputAction.search,
+      onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
       onChanged: (v) => setState(() => _search = v.trim().toLowerCase()),
-      decoration: const InputDecoration(prefixIcon: Icon(Icons.search_rounded), hintText: 'Ödeme veya kişi ara'),
+      decoration: InputDecoration(
+        prefixIcon: const Icon(Icons.search_rounded),
+        hintText: 'Ödeme veya kişi ara',
+        suffixIcon: _search.isEmpty ? null : IconButton(
+          tooltip: 'Aramayı temizle',
+          onPressed: () { _searchController.clear(); setState(() => _search = ''); },
+          icon: const Icon(Icons.close_rounded),
+        ),
+      ),
     ),
     const SizedBox(height: 10),
     SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
-      for (final f in ['Tümü', 'Taksit', 'Fatura', 'Abonelik', 'Alacaklar', 'Gecikenler', 'Geçmiş']) ...[
+      for (final f in ['Tümü', 'Bugün', '7 Gün', 'Bu ay', 'Gecikenler', 'Borçlar', 'Alacaklar', 'Taksit', 'Fatura', 'Abonelik', 'Tek seferlik', 'Geçmiş']) ...[
         ChoiceChip(label: Text(f), selected: _filter == f, onSelected: (_) => setState(() => _filter = f)),
         const SizedBox(width: 8),
       ],
     ])),
-    const SizedBox(height: 18),
+    const SizedBox(height: 12),
+    Wrap(spacing: 8, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+      const Text('Sırala:'),
+      DropdownButton<LedgerSort>(
+        value: _sort,
+        items: const [
+          DropdownMenuItem(value: LedgerSort.nearest, child: Text('En yakın vade')),
+          DropdownMenuItem(value: LedgerSort.latest, child: Text('En uzak vade')),
+          DropdownMenuItem(value: LedgerSort.highest, child: Text('En yüksek tutar')),
+          DropdownMenuItem(value: LedgerSort.lowest, child: Text('En düşük tutar')),
+          DropdownMenuItem(value: LedgerSort.name, child: Text('Ada göre')),
+        ],
+        onChanged: (value) { if (value != null) setState(() => _sort = value); },
+      ),
+    ]),
+    const SizedBox(height: 7),
+    Row(children: [
+      const Expanded(child: Text('Tüm açık taksitleri ayrı ayrı göster')),
+      Switch.adaptive(
+        value: _showAllInstallments,
+        onChanged: (value) => setState(() => _showAllInstallments = value),
+      ),
+    ]),
+    const SizedBox(height: 12),
     Builder(builder: (context) {
-      final source = _filter == 'Geçmiş' ? store.history : store.upcoming;
-      final filtered = source.where((p) {
-        final matchesText = _search.isEmpty || p.plan.title.toLowerCase().contains(_search)
-          || p.plan.party.toLowerCase().contains(_search);
-        final matchesFilter = switch (_filter) {
-          'Taksit' => p.plan.kind == PaymentKind.installment,
-          'Fatura' => p.plan.kind == PaymentKind.invoice,
-          'Abonelik' => p.plan.kind == PaymentKind.subscription,
-          'Alacaklar' => p.plan.direction == PaymentDirection.incoming,
-          'Gecikenler' => p.isLate,
-          _ => true,
-        };
-        return matchesText && matchesFilter;
-      }).toList();
-      return Column(children: filtered.isEmpty
-        ? [const Card(child: EmptyView(title: 'Sonuç bulunamadı', message: 'Filtreyi değiştirin veya yeni ödeme ekleyin.', icon: Icons.search_off_rounded))]
-        : [for (final p in filtered) ...[
+      final showEveryPeriod = _showAllInstallments ||
+        const ['Gecikenler', 'Bugün', '7 Gün', 'Bu ay'].contains(_filter);
+      final source = _filter == 'Geçmiş' ? store.history :
+        (showEveryPeriod ? store.unpaidItems : store.upcoming);
+      final filtered = LedgerInsights.filterAndSort(
+        source, filter: _filter, search: _search, sort: _sort,
+      );
+      final outstanding = filtered.where((e) => e.plan.direction == PaymentDirection.outgoing)
+        .fold<int>(0, (sum, e) => sum + e.amountCents);
+      return Column(children: [
+        Align(alignment: Alignment.centerLeft, child: Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(_filter == 'Geçmiş' ? '${filtered.length} tamamlanan kayıt'
+            : '${filtered.length} kayıt · ${formatCompactMoney(outstanding)} gösterilen borç',
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        )),
+        if (filtered.isEmpty) ...[
+          const Card(child: EmptyView(title: 'Sonuç bulunamadı',
+            message: 'Arama veya filtre koşullarını değiştirebilirsiniz.', icon: Icons.search_off_rounded)),
+          TextButton.icon(
+            icon: const Icon(Icons.filter_alt_off_outlined),
+            label: const Text('Filtreleri temizle'),
+            onPressed: () { _searchController.clear(); setState(() {
+              _search = '';
+              _filter = 'Tümü';
+              _showAllInstallments = false;
+              _sort = LedgerSort.nearest;
+            }); },
+          ),
+        ] else ...[for (final p in filtered) ...[
             if (_filter == 'Geçmiş')
               Card(child: ListTile(
                 leading: const Icon(Icons.check_circle_outline_rounded),
@@ -256,13 +406,28 @@ class _HomeShellState extends State<HomeShell> {
               ))
             else PaymentRowCard(due: p, onTap: () => _openDetails(p), onPaid: () => _pay(p)),
             const SizedBox(height: 10),
-          ]]);
+          ]],
+      ]);
     }),
   ]));
 
   Widget _reportsPage() {
     final all = store.items;
     final historical = store.history;
+    final cashFlow = LedgerInsights.forecast(store.items);
+    final overdueIncoming = LedgerInsights.overdueIncoming(store.items);
+    final outgoingOpen = store.unpaidItems.where((p) =>
+      p.plan.direction == PaymentDirection.outgoing
+    ).fold<int>(0, (sum, p) => sum + p.amountCents);
+    final chartMax = cashFlow.fold<int>(0, (maxValue, month) {
+      final candidate = month.outgoingCents > month.incomingCents
+        ? month.outgoingCents : month.incomingCents;
+      return candidate > maxValue ? candidate : maxValue;
+    });
+    const monthNames = [
+      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+    ];
     final outgoingPaid = historical.where((p) => p.plan.direction == PaymentDirection.outgoing)
       .fold<int>(0, (value, item) => value + item.amountCents);
     final received = historical.where((p) => p.plan.direction == PaymentDirection.incoming)
@@ -270,7 +435,7 @@ class _HomeShellState extends State<HomeShell> {
     final futureInstallments = all.where((p) => !p.isPaid && p.plan.isFinite)
       .fold<int>(0, (sum, p) => sum + (p.plan.direction == PaymentDirection.outgoing ? p.amountCents : 0));
     final categories = <String, int>{};
-    for (final p in store.upcoming) {
+    for (final p in store.unpaidItems.where((p) => p.plan.direction == PaymentDirection.outgoing)) {
       final key = p.plan.kind == PaymentKind.invoice ? p.plan.category.label : p.plan.kind.label;
       categories[key] = (categories[key] ?? 0) + p.amountCents;
     }
@@ -286,15 +451,64 @@ class _HomeShellState extends State<HomeShell> {
         final w = (c.maxWidth - 12 * (cols - 1)) / cols;
         return Wrap(spacing: 12, runSpacing: 12, children: [
           SizedBox(width: w, child: SummaryTile(title: 'Kaydedilen ödemeler', value: formatCompactMoney(outgoingPaid),
-            footer: '${historical.length} tamamlanan kayıt', icon: Icons.check_circle_outline)),
+            footer: '${historical.where((p) => p.plan.direction == PaymentDirection.outgoing).length} ödeme', icon: Icons.check_circle_outline)),
           SizedBox(width: w, child: SummaryTile(title: 'Tahsil edilen', value: formatCompactMoney(received),
             footer: 'Alacak geçmişi', icon: Icons.call_received_rounded)),
           SizedBox(width: w, child: SummaryTile(title: 'Kalan planlı borç', value: formatCompactMoney(futureInstallments),
             footer: 'Sınırlı taksit ve tek seferlik ödemeler', icon: Icons.calendar_month_outlined)),
+          SizedBox(width: w, child: SummaryTile(title: 'Toplam bekleyen borç', value: formatCompactMoney(outgoingOpen),
+            footer: 'Kayıtlı tüm ödenmemiş dönemler', icon: Icons.account_balance_wallet_outlined)),
+          SizedBox(width: w, child: SummaryTile(title: 'Geciken tahsilatlar', value: formatCompactMoney(overdueIncoming),
+            footer: 'Vadesi geçmiş alacak toplamı', icon: Icons.schedule_send_outlined)),
         ]);
       }),
       const SizedBox(height: 23),
-      SectionTitle('Yaklaşan kayıtların dağılımı'),
+      const SectionTitle('Önümüzdeki 6 ay · Nakit akışı'),
+      const SizedBox(height: 8),
+      Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const Text('Yalnızca ödenmemiş ve kayıtlı dönemler gösterilir. Geçmiş gecikmeler bu tahmine dahil değildir.'),
+          const SizedBox(height: 16),
+          for (final month in cashFlow) ...[
+            Row(children: [
+              Expanded(child: Text('${monthNames[month.month.month - 1]} ${month.month.year}',
+                style: Theme.of(context).textTheme.titleMedium)),
+              Text('Net: ${formatCompactMoney(month.netCents)}',
+                style: Theme.of(context).textTheme.bodySmall),
+            ]),
+            const SizedBox(height: 8),
+            Row(children: [
+              const SizedBox(width: 52, child: Text('Borç')),
+              Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: chartMax == 0 ? 0 : month.outgoingCents / chartMax,
+                  minHeight: 9,
+                  backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: .08),
+                ))),
+              const SizedBox(width: 10),
+              SizedBox(width: 94, child: Text(formatCompactMoney(month.outgoingCents),
+                textAlign: TextAlign.right, maxLines: 1, overflow: TextOverflow.ellipsis)),
+            ]),
+            const SizedBox(height: 6),
+            Row(children: [
+              const SizedBox(width: 52, child: Text('Alacak')),
+              Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: chartMax == 0 ? 0 : month.incomingCents / chartMax,
+                  color: Theme.of(context).colorScheme.tertiary,
+                  minHeight: 9,
+                  backgroundColor: Theme.of(context).colorScheme.tertiary.withValues(alpha: .08),
+                ))),
+              const SizedBox(width: 10),
+              SizedBox(width: 94, child: Text(formatCompactMoney(month.incomingCents),
+                textAlign: TextAlign.right, maxLines: 1, overflow: TextOverflow.ellipsis)),
+            ]),
+            const SizedBox(height: 16),
+          ],
+        ],
+      ))),
+      const SizedBox(height: 23),
+      const SectionTitle('Bekleyen borçların türlere göre dağılımı'),
       if (sortedCategories.isEmpty)
         const Card(child: EmptyView(title: 'Rapor için kayıt yok', message: 'Ödeme ekledikçe dağılım burada gösterilir.', icon: Icons.pie_chart_outline))
       else Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(children: [
@@ -324,24 +538,69 @@ class _HomeShellState extends State<HomeShell> {
     Text('Görünüm, hatırlatma ve gizlilik tercihleri.',
       style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
     const SizedBox(height: 20),
-    SectionTitle('Görünüm'),
-    Card(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
-      child: Column(children: [
-        RadioListTile<ThemeMode>(value: ThemeMode.system, groupValue: store.themeMode,
-          title: const Text('Sistem temasını kullan'), onChanged: (v) => store.setTheme(v!)),
-        RadioListTile<ThemeMode>(value: ThemeMode.light, groupValue: store.themeMode,
-          title: const Text('Aydınlık tema'), onChanged: (v) => store.setTheme(v!)),
-        RadioListTile<ThemeMode>(value: ThemeMode.dark, groupValue: store.themeMode,
-          title: const Text('Karanlık tema'), onChanged: (v) => store.setTheme(v!)),
-      ]))),
+    Card(child: ListTile(
+      leading: const Icon(Icons.account_circle_outlined),
+      title: Text(CloudConfig.premiumEnabled ? 'Hesabım ve Premium' : 'Hesabım'),
+      subtitle: Text(CloudConfig.premiumEnabled
+        ? 'Bulut yedeği, üyelik ve duyuru bildirimleri'
+        : 'İsteğe bağlı hesap, hesap silme ve duyurular'),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AccountPage(store: store))),
+    )),
+    const SizedBox(height: 12),
+    Card(child: ListTile(
+      leading: const Icon(Icons.help_outline_rounded),
+      title: const Text('Nasıl kullanılır?'),
+      subtitle: const Text('Misafir kullanım, ödeme ekleme ve hesap işlemleri'),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('VADESİ kullanım rehberi'),
+          content: const SingleChildScrollView(child: Text(
+            '1. Hesap açmadan misafir olarak başlayabilirsiniz.\n\n'
+            '2. Sağ üstteki + düğmesinden taksit, fatura, abonelik veya alacak ekleyin.\n\n'
+            '3. Ödemeler sekmesinden kayıtları arayın, düzenleyin ve ödendi olarak işaretleyin.\n\n'
+            '4. Takvim ve Raporlar sekmelerinden vadeleri inceleyin.\n\n'
+            '5. Ayarlar bölümünden yerel hatırlatmaları ve dosya yedeğini yönetin.\n\n'
+            '6. Hesap isteğe bağlıdır: Hesabım > Üye ol veya Giriş yap. Hesabınızı Hesabım > Hesabımı sil yolundan silebilirsiniz.\n\n'
+            'Not: Gerçek para veya fatura ödemesi yapılmaz; bilgiler kişisel takip amaçlıdır.')),
+          actions: [TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Tamam'),
+          )],
+        ),
+      ),
+    )),
+    const SizedBox(height: 20),
+    const SectionTitle('Görünüm'),
+    Card(child: ListTile(
+      leading: const Icon(Icons.palette_outlined),
+      title: const Text('Uygulama teması'),
+      trailing: DropdownButton<ThemeMode>(
+        value: store.themeMode,
+        items: const [
+          DropdownMenuItem(value: ThemeMode.system, child: Text('Sistem')),
+          DropdownMenuItem(value: ThemeMode.light, child: Text('Aydınlık')),
+          DropdownMenuItem(value: ThemeMode.dark, child: Text('Karanlık')),
+        ],
+        onChanged: (value) async {
+          if (value == null) return;
+          try { await store.setTheme(value); }
+          catch (error) { if (mounted) showError(context, error); }
+        },
+      ),
+    )),
     const SizedBox(height: 21),
-    SectionTitle('Hatırlatmalar'),
+    const SectionTitle('Hatırlatmalar'),
     Card(child: Column(children: [
       SwitchListTile.adaptive(
         title: const Text('Ödeme bildirimleri'),
-        subtitle: const Text('Vade tarihinden 5 gün önce, 1 gün önce ve vade günü'),
+        subtitle: Text(store.supportsNotifications
+          ? '5 gün önce, 1 gün önce, vade günü ve vade geçtikten sonra'
+          : 'Yerel bildirimler Android ve iOS uygulamasında kullanılabilir.'),
         value: store.notificationsEnabled,
-        onChanged: (v) async {
+        onChanged: !store.supportsNotifications ? null : (v) async {
           try {
             final accepted = await store.setNotifications(v);
             if (!accepted && mounted) showError(context, 'Bildirim izni reddedildi. Telefon ayarlarından izin verebilirsiniz.');
@@ -353,20 +612,43 @@ class _HomeShellState extends State<HomeShell> {
       const Divider(height: 1),
       ListTile(
         title: const Text('Bildirim saati'),
-        subtitle: const Text('Hatırlatmaların gönderilmesi istenen saat'),
+        subtitle: const Text('Türkiye saati (Europe/Istanbul), tam saat olarak'),
         trailing: Text('${store.notifyHour.toString().padLeft(2, '0')}:00'),
         onTap: () async {
-          final time = await showTimePicker(context: context,
-            initialTime: TimeOfDay(hour: store.notifyHour, minute: 0),
-            helpText: 'Bildirim saati');
+          final time = await showWheelHourPicker(context, store.notifyHour);
           if (time != null) {
-            try { await store.setNotifyHour(time.hour); }
+            try { await store.setNotifyHour(time); }
             catch (e) { if (mounted) showError(context, e); }
           }
         },
       ),
     ])),
-    const SizedBox(height: 11),
+    if (defaultTargetPlatform == TargetPlatform.android && store.supportsNotifications)
+      OutlinedButton.icon(
+        icon: const Icon(Icons.alarm),
+        label: Text(store.reminders.exactTimingAllowed ? 'Tam saat izni açık' : 'Tam saat iznini aç'),
+        onPressed: () async {
+          try {
+            final accepted = await store.reminders.requestExactTiming();
+            await store.refresh();
+            if (!accepted && mounted) showError(context, 'Tam saat izni verilmedi; Android hatırlatmayı erteleyebilir.');
+          } catch (error) {
+            if (mounted) showError(context, error);
+          }
+        },
+      ),
+    if (store.supportsNotifications) OutlinedButton.icon(
+      icon: const Icon(Icons.notifications_outlined),
+      label: const Text('Test bildirimi gönder'),
+      onPressed: () async {
+        try {
+          await store.reminders.sendTestNotification();
+          if (mounted) showSuccess(context, 'Test bildirimi telefona iletildi. Bildirim perdesini kontrol edin.');
+        } catch (error) {
+          if (mounted) showError(context, error);
+        }
+      },
+    ),    const SizedBox(height: 11),
     Text('Bildirimler cihaz üzerinde zamanlanır. Telefon kapalıysa, izin verilmediyse veya işletim sistemi ertelerse bildirimin tam zamanında ulaşması garanti değildir.',
       style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
     if (store.reminderError != null) ...[
@@ -375,12 +657,21 @@ class _HomeShellState extends State<HomeShell> {
         style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12)),
     ],
     const SizedBox(height: 21),
-    SectionTitle('Veri ve gizlilik'),
-    Card(child: const Padding(padding: EdgeInsets.all(17), child: Column(
+    const SectionTitle('Yedekleme ve dışa aktarma'),
+    Card(child: ListTile(
+      leading: const Icon(Icons.backup_outlined),
+      title: const Text('Yedek al, geri yükle ve CSV aktar'),
+      subtitle: const Text('Kayıtlarını bir dosyada sakla veya tablo olarak dışa aktar.'),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BackupPage(store: store))),
+    )),
+    const SizedBox(height: 21),
+    const SectionTitle('Veri ve gizlilik'),
+    const Card(child: Padding(padding: EdgeInsets.all(17), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start, children: [
         ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.phone_android_outlined),
           title: Text('Veriler bu cihazda'),
-          subtitle: Text('Kayıtlar SQLite veritabanında telefonunuzda tutulur. Üyelik veya sunucu gerekmez.')),
+          subtitle: Text('Kayıtlar bu cihazda tutulur. Web sürümünde tarayıcı verilerini temizlemek kayıtları siler. Düzenli yedek alın.')),
         Divider(),
         ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.info_outline_rounded),
           title: Text('Otomatik banka bağlantısı yok'),
@@ -391,7 +682,7 @@ class _HomeShellState extends State<HomeShell> {
           subtitle: Text('IBAN ve ödeme bilgileri cihazda tutulur; bu sürümde veritabanı şifreli değildir. Telefon ekran kilidini kullanın.')),
       ]))),
     const SizedBox(height: 21),
-    Center(child: Text('VADESİ · 1.0.0',
+    Center(child: Text('VADESİ · 1.3.0',
       style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant))),
   ]));
 }
