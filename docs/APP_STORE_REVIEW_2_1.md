@@ -1,6 +1,6 @@
 # App Store Review — Guideline 2.1 (Information Needed)
 
-Applies to **VADESİ 1.3.0 (build 11)**, built from the `codex/vadesi-platform-upgrade` source with the default flags (`PREMIUM_ENABLED=false`). Check the exact build selected in App Store Connect before copying this response.
+Applies to **VADESİ 1.3.0 (build 11)**, built from the `main` branch with the default flags (`PREMIUM_ENABLED=false`). Check the exact build selected in App Store Connect before copying this response.
 
 ## REQUIRED — outside the repository
 
