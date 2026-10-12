@@ -16,7 +16,7 @@ void main() {
     expect(find.text('VADESİ'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 1600));
     await tester.pumpAndSettle();
-    expect(find.text('Ödemeleriniz tek yerde'), findsOneWidget);
+    expect(find.text('Finansın kontrol altında'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     store.dispose();
