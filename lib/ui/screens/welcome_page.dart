@@ -76,12 +76,15 @@ class _WelcomeGateState extends State<WelcomeGate> {
                   borderRadius: BorderRadius.circular(20)),
                 child: const BrandMark(size: 47)),
               const SizedBox(width: 14),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('VADESİ', style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  letterSpacing: 1.4, fontWeight: FontWeight.w900)),
-                Text('Kişisel vade asistanın',
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('VADESİ', maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    letterSpacing: 1.4, fontWeight: FontWeight.w900)),
+                Text('Kişisel vade asistanın', maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
-              ]),
+              ])),
             ]),
             const SizedBox(height: 33),
             Text('Ödemelerin düzenli.\nAklın rahat.',
