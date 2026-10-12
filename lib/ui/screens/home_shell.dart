@@ -657,11 +657,20 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Widget _settingsPage() => _pageLayout(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text('Ayarlar', style: Theme.of(context).textTheme.headlineMedium),
-    const SizedBox(height: 5),
-    Text('Görünüm, hatırlatma ve gizlilik tercihleri.',
-      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-    const SizedBox(height: 20),
+    Row(children: [
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Ayarlar', style: Theme.of(context).textTheme.headlineMedium),
+        const SizedBox(height: 5),
+        Text('Her şey sana göre, her şey tek yerde.',
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+      ])),
+      Container(width: 48, height: 48,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: .10),
+          borderRadius: BorderRadius.circular(15)),
+        child: Icon(Icons.tune_rounded, color: Theme.of(context).colorScheme.primary)),
+    ]),
+    const SizedBox(height: 22),
     Card(child: ListTile(
       leading: const Icon(Icons.account_circle_outlined),
       title: Text(CloudConfig.premiumEnabled ? 'Hesabım ve Premium' : 'Hesabım'),
@@ -719,80 +728,108 @@ class _HomeShellState extends State<HomeShell> {
     const SectionTitle('Hatırlatmalar'),
     Card(child: Column(children: [
       SwitchListTile.adaptive(
-        title: const Text('Ödeme bildirimleri'),
-        subtitle: Text(store.supportsNotifications
-          ? '5 gün önce, 1 gün önce, vade günü ve vade geçtikten sonra'
-          : 'Yerel bildirimler Android ve iOS uygulamasında kullanılabilir.'),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+        secondary: Container(width: 45, height: 45,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: .10),
+            borderRadius: BorderRadius.circular(13)),
+          child: Icon(Icons.notifications_active_outlined,
+            color: Theme.of(context).colorScheme.primary)),
+        title: const Text('Ödeme hatırlatmaları',
+          style: TextStyle(fontWeight: FontWeight.w800)),
+        subtitle: Text(!store.supportsNotifications
+          ? 'Bildirimler yalnızca iOS ve Android sürümünde kullanılabilir.'
+          : store.notificationsEnabled
+            ? 'Aktif · Vadeleri telefonunda hatırlatır'
+            : 'Kapalı · Açmak için tek dokunuş yeterli'),
         value: store.notificationsEnabled,
-        onChanged: !store.supportsNotifications ? null : (v) async {
+        onChanged: !store.supportsNotifications ? null : (value) async {
           try {
-            final accepted = await store.setNotifications(v);
-            if (!accepted && mounted) showError(context, await store.reminders.permissionFailureMessage());
-          } catch (e) {
-            if (mounted) showError(context, e);
-          }
-        },
-      ),
-      const Divider(height: 1),
-      ListTile(
-        title: const Text('Bildirim saati'),
-        subtitle: const Text('Türkiye saati (Europe/Istanbul), tam saat olarak'),
-        trailing: Text('${store.notifyHour.toString().padLeft(2, '0')}:00'),
-        onTap: () async {
-          final time = await showWheelHourPicker(context, store.notifyHour);
-          if (time != null) {
-            try { await store.setNotifyHour(time); }
-            catch (e) { if (mounted) showError(context, e); }
-          }
-        },
-      ),
-    ])),
-    if (defaultTargetPlatform == TargetPlatform.android && store.supportsNotifications)
-      OutlinedButton.icon(
-        icon: const Icon(Icons.alarm),
-        label: Text(store.reminders.exactTimingAllowed ? 'Tam saat izni açık' : 'Tam saat iznini aç'),
-        onPressed: () async {
-          try {
-            final accepted = await store.reminders.requestExactTiming();
-            await store.refresh();
-            if (!accepted && mounted) showError(context, 'Tam saat izni verilmedi; Android hatırlatmayı erteleyebilir.');
+            final accepted = await store.setNotifications(value);
+            if (!accepted && mounted) {
+              showError(context, await store.reminders.permissionFailureMessage());
+            }
           } catch (error) {
             if (mounted) showError(context, error);
           }
         },
       ),
-    if (store.supportsNotifications) OutlinedButton.icon(
-      icon: const Icon(Icons.notifications_outlined),
-      label: const Text('Test bildirimi gönder'),
-      onPressed: () async {
-        try {
-          await store.reminders.sendTestNotification();
-          if (mounted) showSuccess(context, 'Test bildirimi telefona iletildi. Bildirim perdesini kontrol edin.');
-        } catch (error) {
-          if (mounted) showError(context, error);
-        }
-      },
-    ),
-    if (defaultTargetPlatform == TargetPlatform.iOS && store.supportsNotifications)
-      OutlinedButton.icon(
-        icon: const Icon(Icons.settings_outlined),
-        label: const Text('iPhone bildirim ayarlarını aç'),
-        onPressed: () async {
-          final opened = await store.reminders.openIosNotificationSettings();
-          if (!opened && mounted) {
-            showError(context, 'iPhone Ayarlar > Bildirimler bölümünü açıp VADESİ uygulamasını kontrol edin.');
-          }
-        },
-      ),
+      if (store.notificationsEnabled) ...[
+        const Divider(height: 1),
+        ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 19),
+          leading: const Icon(Icons.tune_rounded),
+          title: const Text('Hatırlatma tercihleri'),
+          subtitle: const Text('Saat, test ve sistem ayarları'),
+          children: [
+            ListTile(
+              title: const Text('Bildirim saati'),
+              subtitle: const Text('Türkiye saati'),
+              trailing: Text('${store.notifyHour.toString().padLeft(2, '0')}:00',
+                style: Theme.of(context).textTheme.titleMedium),
+              onTap: () async {
+                final hour = await showWheelHourPicker(context, store.notifyHour);
+                if (hour != null) {
+                  try { await store.setNotifyHour(hour); }
+                  catch (error) { if (mounted) showError(context, error); }
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.notifications_outlined),
+              title: const Text('Test bildirimi gönder'),
+              onTap: () async {
+                try {
+                  await store.reminders.sendTestNotification();
+                  if (mounted) showSuccess(context,
+                    'Test bildirimi hazırlandı. Bildirim merkezini kontrol et.');
+                } catch (error) {
+                  if (mounted) showError(context, error);
+                }
+              },
+            ),
+            if (defaultTargetPlatform == TargetPlatform.iOS)
+              ListTile(
+                leading: const Icon(Icons.settings_outlined),
+                title: const Text('iPhone bildirim ayarları'),
+                onTap: () async {
+                  final opened = await store.reminders.openIosNotificationSettings();
+                  if (!opened && mounted) {
+                    showError(context, 'iPhone Ayarlar > Bildirimler bölümünden VADESİ uygulamasını aç.');
+                  }
+                },
+              ),
+            if (defaultTargetPlatform == TargetPlatform.android)
+              ListTile(
+                leading: const Icon(Icons.alarm_outlined),
+                title: const Text('Tam saat izni'),
+                subtitle: Text(store.reminders.exactTimingAllowed ? 'Açık' : 'İsteğe bağlı'),
+                onTap: () async {
+                  try {
+                    final allowed = await store.reminders.requestExactTiming();
+                    await store.refresh();
+                    if (!allowed && mounted) {
+                      showError(context, 'Android tam saat bildirimlerini erteleyebilir.');
+                    }
+                  } catch (error) {
+                    if (mounted) showError(context, error);
+                  }
+                },
+              ),
+          ],
+        ),
+      ],
+    ])),
     const SizedBox(height: 11),
-    Text('Bildirimler cihaz üzerinde zamanlanır. Telefon kapalıysa, izin verilmediyse veya işletim sistemi ertelerse bildirimin tam zamanında ulaşması garanti değildir.',
-      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+    Text('Bildirimler yalnızca cihazında planlanır. İstediğin zaman tek anahtarla kapatabilirsin.',
+      style: TextStyle(fontSize: 12,
+        color: Theme.of(context).colorScheme.onSurfaceVariant)),
     if (store.reminderError != null) ...[
-      const SizedBox(height: 9),
-      Text('Bildirim planlama hatası: ${store.reminderError}',
+      const SizedBox(height: 10),
+      Text('Hatırlatma sorunu: ${store.reminderError}',
         style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12)),
     ],
-    const SizedBox(height: 21),
+    const SizedBox(height: 24),
     const SectionTitle('Yedekleme ve dışa aktarma'),
     Card(child: ListTile(
       leading: const Icon(Icons.backup_outlined),
