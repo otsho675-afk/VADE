@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vadesi/state/app_store.dart';
@@ -55,6 +57,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Önümüzdeki 6 ay · Nakit akışı'), findsOneWidget);
     expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    store.dispose();
+  });
+
+  testWidgets('notification consent is shown once and dismissed without a system request', (tester) async {
+    tester.view.physicalSize = const Size(390, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    SharedPreferences.setMockInitialValues({});
+    final store = AppStore()
+      ..loading = false
+      ..notificationIntroReady = true;
+    await tester.pumpWidget(MaterialApp(theme: AppTheme.light(), home: HomeShell(store: store)));
+    await tester.pumpAndSettle();
+    expect(find.text('Vadelerini birlikte hatırlayalım'), findsOneWidget);
+    expect(find.text('Bildirimleri aç'), findsOneWidget);
+    await tester.tap(find.text('Şimdi değil'));
+    await tester.pumpAndSettle();
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('notification_intro_seen'), isTrue);
+    expect(prefs.getBool('notifications_enabled'), isNull);
+    expect(store.notificationsEnabled, isFalse);
+
+    // Navigation and widget reconstruction cannot re-open the permission sheet.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpWidget(MaterialApp(theme: AppTheme.light(), home: HomeShell(store: store)));
+    await tester.pumpAndSettle();
+    expect(find.text('Vadelerini birlikte hatırlayalım'), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     store.dispose();
   });
