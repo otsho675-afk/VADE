@@ -22,7 +22,7 @@ void main() {
         home: HomeShell(store: store),
       ));
       await tester.pumpAndSettle();
-      expect(find.text('Ödemeleriniz tek yerde'), findsOneWidget);
+      expect(find.text('Finansın kontrol altında'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.tap(find.text('Ayarlar').last);
       await tester.pumpAndSettle();
