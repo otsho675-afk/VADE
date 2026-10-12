@@ -120,14 +120,30 @@ class _AuthPageState extends State<AuthPage> {
                   Text(_register ? 'Hesabını oluştur, ödemelerini güvenle takip et.' :
                     'Hesabına giriş yap ve kaldığın yerden devam et.'),
                   const SizedBox(height: 24),
-                  SegmentedButton<bool>(
-                    segments: const [
-                      ButtonSegment(value: false, label: Text('Giriş yap')),
-                      ButtonSegment(value: true, label: Text('Üye ol')),
-                    ],
-                    selected: {_register}, onSelectionChanged: _busy ? null : (selection) {
-                      setState(() { _register = selection.first; _message = null; _repeat.clear(); });
-                    },
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: .08),
+                      borderRadius: BorderRadius.circular(16)),
+                    child: Row(children: [
+                      for (final (register, label) in [
+                        (false, 'Giriş yap'), (true, 'Üye ol')
+                      ]) Expanded(child: TextButton(
+                        onPressed: _busy ? null : () {
+                          setState(() { _register = register; _message = null; _repeat.clear(); });
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor: _register == register
+                            ? Theme.of(context).colorScheme.surface : Colors.transparent,
+                          foregroundColor: _register == register
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 5)),
+                        child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      )),
+                    ]),
                   ),
                   const SizedBox(height: 24),
                   if (!ready) ...[
