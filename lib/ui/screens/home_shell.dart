@@ -27,6 +27,7 @@ class _HomeShellState extends State<HomeShell> {
   String _filter = 'Tümü';
   LedgerSort _sort = LedgerSort.nearest;
   bool _showAllInstallments = false;
+  bool _notificationIntroScheduled = false;
   final _searchController = TextEditingController();
 
   AppStore get store => widget.store;
@@ -38,20 +39,82 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Future<void> _openAdd() async {
-    final created = await Navigator.push<bool>(context,
+    // Adding a payment never shows another notification opt-in prompt.
+    await Navigator.push<bool>(context,
       MaterialPageRoute(builder: (_) => PaymentFormPage(store: store)));
-    if (!mounted || created != true || store.notificationsEnabled || !store.supportsNotifications) return;
-    final want = await confirmAction(context,
-      title: 'Hatırlatmaları etkinleştir',
-      body: 'Ödemeleriniz için 5 gün önce, 1 gün önce ve vade günü cihaz bildirimi almak ister misiniz?',
-      confirm: 'Bildirimleri aç');
-    if (!want) return;
-    try {
-      final granted = await store.setNotifications(true);
-      if (!granted && mounted) showError(context, 'Bildirim izni verilmedi. Ayarlardan daha sonra açabilirsiniz.');
-    } catch (e) {
-      if (mounted) showError(context, e);
-    }
+  }
+
+  void _showFirstNotificationChoice() {
+    if (!mounted || store.notificationIntroSeen) return;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) {
+        final scheme = Theme.of(sheetContext).colorScheme;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(26, 6, 26, 30),
+          child: Column(mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Align(alignment: Alignment.centerLeft, child: Container(
+              width: 62, height: 62,
+              decoration: BoxDecoration(
+                color: scheme.primary.withValues(alpha: .11),
+                borderRadius: BorderRadius.circular(19)),
+              child: Icon(Icons.notifications_active_outlined,
+                color: scheme.primary, size: 31),
+            )),
+            const SizedBox(height: 23),
+            Text('Vadelerini birlikte hatırlayalım',
+              style: Theme.of(sheetContext).textTheme.headlineMedium),
+            const SizedBox(height: 11),
+            Text('Taksit ve faturaların yaklaşırken sana haber verelim. '
+              'Tek dokunuşla aç, zamanında haberdar ol.',
+              style: Theme.of(sheetContext).textTheme.bodyLarge),
+            const SizedBox(height: 22),
+            for (final (icon, title) in [
+              (Icons.event_available_rounded, 'Vadeden 5 gün önce'),
+              (Icons.notifications_none_rounded, 'Bir gün önce ve vade günü'),
+              (Icons.history_toggle_off_rounded, 'Geciken ödemelerde'),
+            ]) Padding(padding: const EdgeInsets.only(bottom: 12),
+              child: Row(children: [
+                Icon(icon, color: scheme.primary, size: 21),
+                const SizedBox(width: 13),
+                Expanded(child: Text(title,
+                  style: Theme.of(sheetContext).textTheme.titleMedium)),
+              ])),
+            const SizedBox(height: 14),
+            FilledButton.icon(
+              icon: const Icon(Icons.notifications_active_outlined),
+              label: const Text('Bildirimleri aç'),
+              onPressed: () async {
+                Navigator.pop(sheetContext);
+                try {
+                  final granted = await store.setNotifications(true);
+                  if (!granted && mounted) {
+                    showError(context, await store.reminders.permissionFailureMessage());
+                  }
+                } catch (error) {
+                  if (mounted) showError(context, error);
+                }
+              },
+            ),
+            const SizedBox(height: 6),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(sheetContext);
+                await store.finishNotificationIntro();
+              },
+              child: const Text('Şimdi değil'),
+            ),
+            const SizedBox(height: 5),
+            Text('Kararını Ayarlar bölümünden istediğin zaman değiştirebilirsin.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+          ]),
+        );
+      },
+    );
   }
 
   void _openDetails(DueItem item) => Navigator.push(context,
@@ -86,6 +149,12 @@ class _HomeShellState extends State<HomeShell> {
     final extended = width >= 1240;
     return AnimatedBuilder(animation: Listenable.merge([store, store.cloud]), builder: (context, _) {
       if (store.loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      if (store.notificationIntroReady && !store.notificationIntroSeen &&
+          store.supportsNotifications && !_notificationIntroScheduled &&
+          store.error == null) {
+        _notificationIntroScheduled = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) => _showFirstNotificationChoice());
+      }
       if (store.error != null) { return Scaffold(body: SafeArea(child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
