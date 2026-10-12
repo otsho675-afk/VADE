@@ -67,7 +67,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+
     SharedPreferences.setMockInitialValues({});
     final store = AppStore()
       ..loading = false
@@ -89,6 +89,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Vadelerini birlikte hatırlayalım'), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
+    debugDefaultTargetPlatformOverride = null;
     store.dispose();
   });
 
