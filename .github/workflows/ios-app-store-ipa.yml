@@ -4,6 +4,10 @@ name: VADE - Free iOS App Store IPA
 # App Store builds use the reviewed main branch as the source of truth.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ios-app-store-ipa.yml'
 
 permissions:
   contents: read
