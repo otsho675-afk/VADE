@@ -15,7 +15,7 @@ try {
   await page.getByRole('button', { name: 'Üye ol', exact: true }).waitFor();
   await page.screenshot({ path: 'web-welcome.png', fullPage: true });
   await page.getByRole('button', { name: 'Misafir olarak devam et', exact: true }).click();
-  await page.getByText('Ödemeleriniz tek yerde', { exact: true }).waitFor();
+  await page.getByText('Finansın kontrol altında', { exact: true }).waitFor();
   await page.screenshot({ path: 'web-dashboard.png', fullPage: true });
   await page.getByRole('button', { name: 'Yeni ödeme ekle', exact: true }).click();
   await page.getByRole('button', { name: 'Tek seferlik', exact: true }).click();
