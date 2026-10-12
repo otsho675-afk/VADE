@@ -47,7 +47,13 @@ void main() {
       await tester.pumpAndSettle();
       final submit = tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Hesabımı oluştur'));
       expect(submit.onPressed, isNull);
-      expect(tester.takeException(), isNull);
+      final layoutError = tester.takeException();
+      if (layoutError is FlutterError) {
+        for (final diagnostic in layoutError.diagnostics) {
+          debugPrint(diagnostic.toStringDeep());
+        }
+      }
+      expect(layoutError, isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       store.dispose();
     });
