@@ -39,6 +39,8 @@ void main() {
       expect(find.text('Üye ol'), findsOneWidget);
       await tester.ensureVisible(find.text('Üye ol'));
       await tester.pumpAndSettle();
+      // Catch a welcome-layout problem separately from an auth-layout problem.
+      expect(tester.takeException(), isNull, reason: 'Welcome screen must fit');
       await tester.tap(find.text('Üye ol'));
       await tester.pumpAndSettle();
       expect(find.text('Birlikte başlayalım.'), findsOneWidget);
