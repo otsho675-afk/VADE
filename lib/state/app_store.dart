@@ -26,6 +26,8 @@ class AppStore extends ChangeNotifier {
   String? reminderError;
   ThemeMode themeMode = ThemeMode.system;
   bool notificationsEnabled = false;
+  bool notificationIntroReady = false;
+  bool notificationIntroSeen = false;
   int notifyHour = 9;
 
   Future<void> initialize() async {
@@ -41,6 +43,8 @@ class AppStore extends ChangeNotifier {
       themeMode = ThemeMode.values.firstWhere(
         (mode) => mode.name == prefs.getString('theme_mode'), orElse: () => ThemeMode.system);
       notificationsEnabled = supportsNotifications && (prefs.getBool('notifications_enabled') ?? false);
+      notificationIntroSeen = (prefs.getBool('notification_intro_seen') ?? false) || notificationsEnabled;
+      notificationIntroReady = true;
       notifyHour = (prefs.getInt('notify_hour') ?? 9).clamp(0, 23);
       await reminders.initialize();
       await refresh();
@@ -108,7 +112,17 @@ class AppStore extends ChangeNotifier {
     await (await SharedPreferences.getInstance()).setString('theme_mode', value.name);
   }
 
+  /// The one-time explainer is saved independently from the system's permission.
+  /// Dismissing it never requests notification permission.
+  Future<void> finishNotificationIntro() async {
+    notificationIntroSeen = true;
+    notifyListeners();
+    await (await SharedPreferences.getInstance()).setBool('notification_intro_seen', true);
+  }
+
   Future<bool> setNotifications(bool enabled) async {
+    // Explicit user action is the only place that invokes the system prompt.
+    await finishNotificationIntro();
     if (enabled && !(await reminders.requestPermissions())) return false;
     notificationsEnabled = enabled;
     await (await SharedPreferences.getInstance()).setBool('notifications_enabled', enabled);
