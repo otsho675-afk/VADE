@@ -18,21 +18,34 @@ class SectionTitle extends StatelessWidget {
 class SummaryTile extends StatelessWidget {
   final String title, value, footer;
   final IconData icon;
-  const SummaryTile({super.key, required this.title, required this.value, required this.footer, required this.icon});
+  const SummaryTile({super.key, required this.title, required this.value,
+    required this.footer, required this.icon});
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme;
+    final scheme = Theme.of(context).colorScheme;
     return Card(child: Padding(
       padding: const EdgeInsets.all(18),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Expanded(child: Text(title, style: Theme.of(context).textTheme.bodyMedium)),
-          Icon(icon, color: color.primary, size: 21),
+          Container(width: 40, height: 40, alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: .10),
+              borderRadius: BorderRadius.circular(13)),
+            child: Icon(icon, color: scheme.primary, size: 21)),
+          const Spacer(),
+          const Icon(Icons.north_east_rounded, size: 15, color: Color(0xFF839AA4)),
         ]),
-        const SizedBox(height: 14),
-        FittedBox(alignment: Alignment.centerLeft, fit: BoxFit.scaleDown, child: Text(value, style: Theme.of(context).textTheme.headlineSmall)),
-        const SizedBox(height: 8),
-        Text(footer, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: color.onSurfaceVariant, fontSize: 12)),
+        const SizedBox(height: 17),
+        Text(title, maxLines: 2, overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant,
+            fontWeight: FontWeight.w600)),
+        const SizedBox(height: 5),
+        FittedBox(alignment: Alignment.centerLeft, fit: BoxFit.scaleDown,
+          child: Text(value, style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w900, letterSpacing: -.5))),
+        const SizedBox(height: 7),
+        Text(footer, maxLines: 2, overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11)),
       ]),
     ));
   }
@@ -64,63 +77,79 @@ class PaymentRowCard extends StatelessWidget {
   final DueItem due;
   final VoidCallback onTap;
   final VoidCallback onPaid;
-  const PaymentRowCard({super.key, required this.due, required this.onTap, required this.onPaid});
+  const PaymentRowCard({super.key, required this.due,
+    required this.onTap, required this.onPaid});
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final icon = due.plan.kind == PaymentKind.invoice ? due.plan.category.icon : due.plan.kind.icon;
+    final icon = due.plan.kind == PaymentKind.invoice
+      ? due.plan.category.icon : due.plan.kind.icon;
+    final incoming = due.plan.direction == PaymentDirection.incoming;
+    final amountColor = incoming ? scheme.primary : scheme.onSurface;
     return Card(child: InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(22),
       child: Padding(
-        padding: const EdgeInsets.all(15),
-        child: LayoutBuilder(builder: (context, constraints) {
-          final narrow = constraints.maxWidth < 420;
-          final info = Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(
-              padding: const EdgeInsets.all(11),
-              decoration: BoxDecoration(color: scheme.primary.withValues(alpha: .08), borderRadius: BorderRadius.circular(13)),
-              child: Icon(icon, size: 23, color: scheme.primary),
-            ),
-            const SizedBox(width: 12),
+        padding: const EdgeInsets.all(16),
+        child: LayoutBuilder(builder: (context, c) {
+          final narrow = c.maxWidth < 475;
+          final heading = Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(width: 46, height: 46, alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: scheme.primary.withValues(alpha: .09),
+                borderRadius: BorderRadius.circular(15)),
+              child: Icon(icon, size: 23, color: scheme.primary)),
+            const SizedBox(width: 13),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(due.plan.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 4),
+              Text(due.plan.title, maxLines: 2, overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800)),
+              const SizedBox(height: 5),
               Text(due.plan.party.isEmpty ? due.plan.kind.label : due.plan.party,
                 maxLines: 1, overflow: TextOverflow.ellipsis,
                 style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
-              const SizedBox(height: 8),
-              Wrap(spacing: 7, runSpacing: 7, crossAxisAlignment: WrapCrossAlignment.center, children: [
+              const SizedBox(height: 9),
+              Wrap(spacing: 7, runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center, children: [
                 StatusPill(due: due),
-                Text(formatDate(due.dueDate), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+                Text(formatDate(due.dueDate),
+                  style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
                 if (due.plan.kind == PaymentKind.installment)
-                  Text('${due.sequence}/${due.plan.count} taksit', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+                  Text('${due.sequence}/${due.plan.count} taksit',
+                    style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
               ]),
             ])),
           ]);
-          final actions = Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text(formatCompactMoney(due.amountCents), style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 10),
-            OutlinedButton.icon(
-              onPressed: onPaid,
-              icon: const Icon(Icons.check_rounded, size: 17),
-              label: Text(due.plan.direction == PaymentDirection.incoming ? 'Tahsil edildi' : 'Ödendi'),
-            ),
-          ]);
+          final amount = Text(formatCompactMoney(due.amountCents),
+            maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: amountColor, fontWeight: FontWeight.w900, letterSpacing: -.5));
+          final action = OutlinedButton.icon(
+            onPressed: onPaid, icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+            label: Text(incoming ? 'Tahsil edildi' : 'Ödendi'),
+          );
           if (narrow) {
             return Column(children: [
-              info,
-              const SizedBox(height: 13),
-              const Divider(height: 1),
-              const SizedBox(height: 12),
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Text(formatCompactMoney(due.amountCents), style: Theme.of(context).textTheme.titleMedium),
-                OutlinedButton.icon(onPressed: onPaid, icon: const Icon(Icons.check_rounded, size: 17),
-                  label: Text(due.plan.direction == PaymentDirection.incoming ? 'Tahsil edildi' : 'Ödendi')),
+              heading,
+              const SizedBox(height: 15),
+              Divider(height: 1, color: scheme.outlineVariant.withValues(alpha: .55)),
+              const SizedBox(height: 11),
+              Row(children: [
+                Expanded(child: amount),
+                const SizedBox(width: 8),
+                action,
               ]),
             ]);
           }
-          return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [Expanded(child: info), const SizedBox(width: 14), actions]);
+          return Row(children: [
+            Expanded(child: heading),
+            const SizedBox(width: 15),
+            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              amount,
+              const SizedBox(height: 10),
+              action,
+            ]),
+          ]);
         }),
       ),
     ));
