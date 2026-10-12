@@ -290,7 +290,9 @@ class ReminderService {
   }
 
   Future<void> sendTestNotification() async {
-    if (!await requestPermissions()) {
+    // The user granted permission from onboarding or the single settings toggle.
+    // Testing a notification must not trigger another iOS authorization prompt.
+    if (!await permissionGranted()) {
       throw StateError(await permissionFailureMessage());
     }
     if (_nativeIos) {
