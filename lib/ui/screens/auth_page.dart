@@ -89,7 +89,7 @@ class _AuthPageState extends State<AuthPage> {
       content: const SingleChildScrollView(child: Text(
         'Hesap açtığında e-posta adresin, kullanıcı kimliğin ve son görülme bilgin Firebase üzerinde tutulur. '
         'Uygulama açıkken çevrimiçi durumun yetkili yöneticiye görünür. '
-        'Ödeme kayıtların cihazda kalır; bulut yedeği isteğe bağlıdır. Bildirimleri açıp hesabına giriş yaparsan, bildirim zamanları ve cihazının bildirim anahtarı Firebase'e kaydedilir. Ödeme tutarları ve kişi adları bildirim sunucusuna aktarılmaz. '
+        'Ödeme kayıtların cihazda kalır; bulut yedeği isteğe bağlıdır. Bildirimleri açıp hesabına giriş yaparsan, bildirim zamanları ve cihazının bildirim anahtarı Firebase sunucusuna kaydedilir. Ödeme tutarları ve kişi adları bildirim sunucusuna aktarılmaz. '
         'Bulut yedekleri uçtan uca şifrelenmez. Duyuru bildirimleri ayrıca izin ister. '
         'Hesabını Hesabım bölümünden silebilirsin. Hesap silmek mağaza aboneliğini iptal etmez.')),
       actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Anladım'))],
