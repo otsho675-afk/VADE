@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/cloud_service.dart';
 import '../services/purchase_service.dart';
 import '../services/remote_push_service.dart';
+import '../services/firebase_push_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/local_database.dart';
 import '../models/payment.dart';
@@ -16,6 +17,7 @@ class AppStore extends ChangeNotifier {
       : db = database ?? LocalDatabase(), reminders = reminderService ?? ReminderService(), cloud = cloudService ?? CloudService();
   final CloudService cloud;
   final remotePush = RemotePushService();
+  final firebasePush = FirebasePushService();
   late final purchases = PurchaseService(cloud);
   bool _servicesStarted = false;
   bool _disposed = false;
@@ -60,6 +62,7 @@ class AppStore extends ChangeNotifier {
   Future<void> _initializeServices() async {
     await cloud.initialize();
     if (_disposed) return;
+    if (cloud.ready) await firebasePush.initialize();
     try { await remotePush.initialize(); if (CloudConfig.premiumEnabled) await purchases.initialize(); }
     catch (_) { cloud.error = 'Bildirim veya mağaza bağlantısı kurulamadı.'; }
     notifyListeners();
@@ -73,6 +76,8 @@ class AppStore extends ChangeNotifier {
     } catch (e) {
       reminderError = '$e';
     }
+    unawaited(firebasePush.updateSchedule(items,
+        enabled: notificationsEnabled, hour: notifyHour));
     notifyListeners();
   }
 
@@ -129,6 +134,16 @@ class AppStore extends ChangeNotifier {
     await refresh();
     notifyListeners();
     return true;
+  }
+
+  Future<void> signOut() async {
+    await firebasePush.unregister();
+    await cloud.signOut();
+  }
+
+  Future<void> deleteAccount(String password) async {
+    await firebasePush.unregister();
+    await cloud.deleteAccount(password);
   }
 
   Future<void> setNotifyHour(int value) async {
@@ -198,6 +213,7 @@ class AppStore extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    firebasePush.dispose();
     cloud.dispose();
     purchases.dispose();
     db.close();
