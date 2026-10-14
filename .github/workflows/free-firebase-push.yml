@@ -1,0 +1,38 @@
+name: Free Firebase background reminders (Spark)
+
+# FCM is free; this replaces the Cloud Functions scheduler, which requires Blaze.
+# Runs on the default branch only. GitHub may delay scheduled jobs.
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vadesi-spark-push
+  cancel-in-progress: false
+
+jobs:
+  send_vade_reminders:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install backend dependencies
+        working-directory: backend/functions
+        run: npm install --omit=dev --no-audit --no-fund
+      - name: Send due FCM notifications (without Cloud Functions)
+        working-directory: backend/functions
+        env:
+          VADE_FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.VADE_FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [[ -z "$VADE_FIREBASE_SERVICE_ACCOUNT_JSON" ]]; then
+            echo "::error::Add VADE_FIREBASE_SERVICE_ACCOUNT_JSON under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          node dispatch_push_spark.js
