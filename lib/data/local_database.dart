@@ -67,6 +67,16 @@ class LocalDatabase {
     }
   }
 
+  // The no-worker WASM SQLite engine buffers IndexedDB writes. Its
+  // readDatabaseBytes API flushes the IndexedDB VFS; waiting for the flush
+  // prevents an immediate page reload from dropping a newly saved payment.
+  Future<void> _persistWeb() async {
+    if (!kIsWeb) return;
+    final selectedFactory = factory ?? platformDatabaseFactory();
+    final path = databasePath ?? 'vadesi.db';
+    await selectedFactory.readDatabaseBytes(path);
+  }
+
   Future<List<DueItem>> allItems() async {
     final db = await connection;
     final plans = (await db.query('plans')).map(PaymentPlan.fromMap).toList();
@@ -82,7 +92,7 @@ class LocalDatabase {
   Future<int> addPlan(PlanDraft draft) async {
     validateDraft(draft);
     final db = await connection;
-    return db.transaction((txn) async {
+    final id = await db.transaction((txn) async {
       final id = await txn.insert('plans', {
         'title': draft.title,
         'party': draft.party,
@@ -110,6 +120,8 @@ class LocalDatabase {
       }
       return id;
     });
+    await _persistWeb();
+    return id;
   }
 
   /// Updates only unpaid amounts; paid history remains immutable.
@@ -129,6 +141,7 @@ class LocalDatabase {
       await txn.update('occurrences', {'amount_cents': draft.amountCents},
           where: 'plan_id = ? AND paid_at IS NULL', whereArgs: [plan.id]);
     });
+    await _persistWeb();
   }
 
   Future<void> pay(DueItem occurrence) async {
@@ -153,6 +166,7 @@ class LocalDatabase {
         }, conflictAlgorithm: ConflictAlgorithm.ignore);
       }
     });
+    await _persistWeb();
   }
 
   Future<void> undo(DueItem occurrence) async {
@@ -177,17 +191,20 @@ class LocalDatabase {
         );
       }
     });
+    await _persistWeb();
   }
 
   Future<void> updateDueDate(DueItem occurrence, DateTime dueDate) async {
     final db = await connection;
     await db.update('occurrences', {'due_date': sqlDate(dueDate)},
       where: 'id = ? AND paid_at IS NULL', whereArgs: [occurrence.id]);
+    await _persistWeb();
   }
 
   Future<void> deletePlan(int id) async {
     final db = await connection;
     await db.delete('plans', where: 'id = ?', whereArgs: [id]);
+    await _persistWeb();
   }
 
   Future<String> exportBackup() async {
@@ -213,6 +230,7 @@ class LocalDatabase {
         await txn.insert('occurrences', row);
       }
     });
+    await _persistWeb();
   }
 
   Future<void> close() async {
