@@ -62,7 +62,13 @@ class AppStore extends ChangeNotifier {
   Future<void> _initializeServices() async {
     await cloud.initialize();
     if (_disposed) return;
-    if (cloud.ready) await firebasePush.initialize();
+    if (cloud.ready) {
+      await firebasePush.initialize();
+      // Local data may have loaded before Firebase finished initializing.
+      // Publish the latest schedule immediately, not only after a later edit.
+      unawaited(firebasePush.updateSchedule(items,
+          enabled: notificationsEnabled, hour: notifyHour));
+    }
     try { await remotePush.initialize(); if (CloudConfig.premiumEnabled) await purchases.initialize(); }
     catch (_) { cloud.error = 'Bildirim veya mağaza bağlantısı kurulamadı.'; }
     notifyListeners();
