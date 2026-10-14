@@ -91,7 +91,7 @@ class _AccountPageState extends State<AccountPage> {
     await Future<void>.delayed(const Duration(milliseconds: 300));
     controller.dispose();
     if (password == null || password.isEmpty) return;
-    await store.cloud.deleteAccount(password);
+    await store.deleteAccount(password);
     if (mounted) showSuccess(context, 'Hesabınız silindi.');
   }
 
@@ -178,7 +178,7 @@ class _AccountPageState extends State<AccountPage> {
               ]),
               const Divider(),
               ],
-              TextButton(onPressed: _busy ? null : () => _run(cloud.signOut), child: const Text('Çıkış yap')),
+              TextButton(onPressed: _busy ? null : () => _run(store.signOut), child: const Text('Çıkış yap')),
               TextButton(onPressed: _busy ? null : () => _run(_delete), child: const Text('Hesabımı sil')),
             ],
             const Divider(height: 32),
