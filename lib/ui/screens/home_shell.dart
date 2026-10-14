@@ -85,6 +85,10 @@ class _HomeShellState extends State<HomeShell> {
                 Expanded(child: Text(title,
                   style: Theme.of(sheetContext).textTheme.titleMedium)),
               ])),
+            const SizedBox(height: 12),
+            Text('Hesabına giriş yaparsan bildirim zamanları ve cihaz anahtarın '
+              'Firebase sistemine aktarılır. Ödeme tutarları aktarılmaz.',
+              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
             const SizedBox(height: 14),
             FilledButton.icon(
               icon: const Icon(Icons.notifications_active_outlined),
