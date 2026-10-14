@@ -57,6 +57,23 @@ class ReminderService {
             const InitializationSettings(android: android, iOS: ios),
           ) ??
           false;
+      if (_ready && defaultTargetPlatform == TargetPlatform.android) {
+        // FCM targets this same channel even if no local reminder is scheduled.
+        // Channel importance cannot be changed after the OS creates it.
+        try {
+          await _plugin
+              .resolvePlatformSpecificImplementation<
+                  AndroidFlutterLocalNotificationsPlugin>()
+              ?.createNotificationChannel(const AndroidNotificationChannel(
+                'vadesi_risk',
+                'Vade uyarıları',
+                description: 'Vade öncesi, vade günü ve gecikme uyarıları',
+                importance: Importance.high,
+              ));
+        } catch (error) {
+          debugPrint('Android notification channel setup failed: $error');
+        }
+      }
     } catch (error) {
       // Keep the local ledger working, but never report a plugin failure as a user denial.
       _initializationError = '$error';
