@@ -58,7 +58,7 @@ test('push tokens are private and server delivery markers cannot be reset by cli
   const path = 'push_devices/alice_abcdefghijklmnopqrstuv';
   const push = () => ({
     uid:'alice', fcmToken:'valid_long_test_token_0123456789', platform:'android',
-    enabled:true, reminders:[], updatedAt:serverTimestamp(),
+    enabled:true, reminders:[], nextDueAtMillis:253402300799000, updatedAt:serverTimestamp(),
   });
   await assertSucceeds(setDoc(doc(alice,path),push()));
   await assertFails(getDoc(doc(bob,path)));
