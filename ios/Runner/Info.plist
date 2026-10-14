@@ -30,7 +30,11 @@
 	<string>VADESİ, desteklenen dosya seçme işlemlerinde kamerayla görsel oluşturabilmeniz için erişim izni ister.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>VADESİ, konum gerektiren bir sistem bileşeni kullanıldığında yalnızca uygulama açıkken konum erişimi izni ister.</string>
-	<key>UIBackgroundModes</key><array><string>remote-notification</string></array>
+	<key>UIBackgroundModes</key>
+    <array>
+      <string>remote-notification</string>
+      <string>fetch</string>
+    </array>
     <key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>
