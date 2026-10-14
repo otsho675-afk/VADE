@@ -3,6 +3,8 @@ import {initializeApp} from 'firebase-admin/app';
 import {getAuth} from 'firebase-admin/auth';
 import {getFirestore, FieldValue} from 'firebase-admin/firestore';
 import {getDatabase} from 'firebase-admin/database';
+import {getMessaging} from 'firebase-admin/messaging';
+import {dueNotifications} from './push_reminders.js';
 import {onCall, HttpsError} from 'firebase-functions/v2/https';
 import {onSchedule} from 'firebase-functions/v2/scheduler';
 import {defineSecret, defineString} from 'firebase-functions/params';
@@ -180,6 +182,8 @@ export const deleteMyAccount = onCall({region, maxInstances: 3}, async request =
     throw new HttpsError('unauthenticated', 'Silmek için tekrar giriş yapın.');
   }
   await db.recursiveDelete(db.doc('users/' + uid));
+  const devices = await db.collection('push_devices').where('uid', '==', uid).get();
+  for (const device of devices.docs) await device.ref.delete();
   await getDatabase().ref('presence/' + uid).remove();
   await db.doc('entitlements/' + uid).delete();
   const receipts = await db.collection('_receipts').where('uid', '==', uid).get();
@@ -190,4 +194,71 @@ export const deleteMyAccount = onCall({region, maxInstances: 3}, async request =
   }
   await getAuth().deleteUser(uid);
   return {deleted: true};
+});
+
+// Send visible FCM notifications even when the Flutter application is closed.
+// Requires an explicit Firebase Functions deployment and Blaze billing.
+export const dispatchVadeReminders = onSchedule({
+  region, schedule: 'every 15 minutes', timeZone: 'Europe/Istanbul',
+  maxInstances: 1, timeoutSeconds: 540,
+}, async () => {
+  const now = Date.now();
+  let cursor;
+  do {
+    let query = db.collection('push_devices').orderBy('__name__').limit(150);
+    if (cursor) query = query.startAfter(cursor);
+    const page = await query.get();
+    if (page.empty) break;
+    for (const doc of page.docs) {
+      if (!dueNotifications(doc.data(), now).length) continue;
+      try {
+        const pending = await db.runTransaction(async tx => {
+          const current = await tx.get(doc.ref);
+          if (!current.exists) return [];
+          const data = current.data();
+          const reminders = dueNotifications(data, now);
+          if (!reminders.length) return [];
+          const delivered = Object.fromEntries(
+            Object.entries(data.delivered ?? {}).filter(([, time]) =>
+              Number.isSafeInteger(time) && time >= now - 30*86400000).slice(-100));
+          for (const r of reminders) delivered[r.key] = now;
+          tx.update(doc.ref, {delivered});
+          return reminders.map(r => ({...r, token: data.fcmToken}));
+        });
+        for (const r of pending) {
+          try {
+            await getMessaging().send({
+              token: r.token,
+              notification: {title: r.title, body: r.body},
+              data: {kind: 'vade_reminder', reminderId: String(r.id)},
+              android: {priority: 'high', notification: {
+                channelId: 'vadesi_risk', sound: 'default', tag: 'vadesi-' + r.id,
+              }},
+              apns: {headers: {'apns-priority':'10', 'apns-push-type':'alert'},
+                payload: {aps: {sound: 'default'}}},
+            });
+          } catch (error) {
+            console.error('FCM delivery failed', error.code ?? error.message);
+            if (['messaging/registration-token-not-registered',
+                 'messaging/invalid-registration-token'].includes(error.code)) {
+              await doc.ref.update({enabled: false});
+            } else {
+              await db.runTransaction(async tx => {
+                const current = await tx.get(doc.ref);
+                if (!current.exists) return;
+                const delivered = {...(current.data().delivered ?? {})};
+                if (delivered[r.key] === now) {
+                  delete delivered[r.key];
+                  tx.update(doc.ref, {delivered});
+                }
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Push scheduling failed', doc.id, error);
+      }
+    }
+    cursor = page.docs.length === 150 ? page.docs.at(-1) : null;
+  } while (cursor);
 });
