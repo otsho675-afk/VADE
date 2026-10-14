@@ -51,3 +51,20 @@ test('presence writes are private to owner and aggregate reads require admin', a
   await assertSucceeds(get(ref(admin,'presence')));
   await assertFails(set(ref(alice,'presence/alice/fake'),true));
 });
+
+test('push tokens are private and server delivery markers cannot be reset by clients', async () => {
+  const alice = env.authenticatedContext('alice').firestore();
+  const bob = env.authenticatedContext('bob').firestore();
+  const path = 'push_devices/alice_abcdefghijklmnopqrstuv';
+  const push = () => ({
+    uid:'alice', fcmToken:'valid_long_test_token_0123456789', platform:'android',
+    enabled:true, reminders:[], updatedAt:serverTimestamp(),
+  });
+  await assertSucceeds(setDoc(doc(alice,path),push()));
+  await assertFails(getDoc(doc(bob,path)));
+  await assertFails(setDoc(doc(bob,path),{...push(), uid:'bob'}));
+  await assertSucceeds(setDoc(doc(alice,path),{enabled:false, updatedAt:serverTimestamp()}, {merge:true}));
+  await env.withSecurityRulesDisabled(async context =>
+    setDoc(doc(context.firestore(),path),{delivered:{reminder_1:Date.now()}}, {merge:true}));
+  await assertFails(setDoc(doc(alice,path),{delivered:{}}, {merge:true}));
+});
