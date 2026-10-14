@@ -136,6 +136,11 @@ class AppStore extends ChangeNotifier {
     return true;
   }
 
+  Future<void> signIn(String email, String password, {bool register = false}) async {
+    if (cloud.user != null) await firebasePush.unregister();
+    await cloud.signIn(email, password, register: register);
+  }
+
   Future<void> signOut() async {
     await firebasePush.unregister();
     await cloud.signOut();
