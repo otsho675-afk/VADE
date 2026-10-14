@@ -11,3 +11,23 @@ export function dueNotifications(device, now) {
     !delivered[`${r.id}_${r.atMillis}`]
   ).slice(0, 20).map(r => ({...r, key: `${r.id}_${r.atMillis}`}));
 }
+
+/** Upper bound used for a device with no remaining alert. Query excludes it. */
+export const NO_FUTURE_ALERT = 253402300799000;
+
+export function nextDueAtMillis(device, now) {
+  if (device?.enabled !== true || !Array.isArray(device?.reminders)) {
+    return NO_FUTURE_ALERT;
+  }
+  const delivered = device.delivered ?? {};
+  let nearest = NO_FUTURE_ALERT;
+  for (const reminder of device.reminders.slice(0, 60)) {
+    if (!reminder || !Number.isSafeInteger(reminder.id) ||
+        !Number.isSafeInteger(reminder.atMillis) ||
+        reminder.atMillis <= now - 86400000 ||
+        reminder.atMillis > NO_FUTURE_ALERT ||
+        delivered[`${reminder.id}_${reminder.atMillis}`]) continue;
+    nearest = Math.min(nearest, reminder.atMillis);
+  }
+  return nearest;
+}
