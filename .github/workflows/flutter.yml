@@ -60,7 +60,16 @@ jobs:
           flutter-version: '3.47.7'
           cache: true
       - run: flutter pub get
-      - run: dart run sqflite_common_ffi_web:setup
+      # VADE uses databaseFactoryFfiWebNoWebWorker, so the legacy
+      # webdev-generated shared-worker script is not needed.
+      # Fetch the matching sqlite3 2.9.4 WASM artifact and verify its SHA-256.
+      - name: Install pinned SQLite WASM without webdev
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --silent --show-error \
+            "https://github.com/simolus3/sqlite3.dart/releases/download/sqlite3-2.9.4/sqlite3.wasm" \
+            -o web/sqlite3.wasm
+          echo "922a76b182b6af69b030c8e2fdd3283ecc8e827248b20e4b1f3f3db170b52117  web/sqlite3.wasm" | sha256sum --check
       - run: dart run flutter_launcher_icons -f web_icons.yaml
       - run: flutter build web --release --no-web-resources-cdn
       - uses: actions/upload-artifact@v4
