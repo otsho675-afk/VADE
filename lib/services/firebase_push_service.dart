@@ -126,7 +126,8 @@ class FirebasePushService with WidgetsBindingObserver {
         'id': r.id,
         'atMillis': r.when.millisecondsSinceEpoch,
         'title': r.title,
-        'body': r.body,
+        // Never place merchant names, amounts or personal financial details in FCM.
+        'body': 'Ödeme veya tahsilat durumunuzu kontrol edin.',
       }).toList(),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
