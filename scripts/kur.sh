@@ -21,11 +21,8 @@ chmod +x android/gradlew
 python3 scripts/patch_android.py
 python3 scripts/prepare_platforms.py
 flutter pub get
-# The web SQLite worker build is not required for native iOS/macOS and
-# webdev's cross-compilation step can fail on macOS GitHub runners.
-if [[ "$(uname -s)" != "Darwin" ]]; then
-  dart run sqflite_common_ffi_web:setup
-fi
+# Native Android/iOS builds must not run the separate web SQLite worker setup.
+# The web build job runs that setup independently.
 dart run flutter_launcher_icons
 python3 - <<'PY'
 from pathlib import Path
