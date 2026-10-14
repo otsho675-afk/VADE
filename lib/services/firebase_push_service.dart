@@ -122,6 +122,10 @@ class FirebasePushService with WidgetsBindingObserver {
       'fcmToken': token,
       'platform': defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
       'enabled': true,
+      // Indexed cursor: Spark scheduler queries only devices with due alarms.
+      'nextDueAtMillis': _planned.isEmpty
+          ? 253402300799000
+          : _planned.first.when.millisecondsSinceEpoch,
       'reminders': _planned.map((r) => {
         'id': r.id,
         'atMillis': r.when.millisecondsSinceEpoch,
