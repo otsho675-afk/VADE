@@ -36,6 +36,11 @@ import UIKit
               result(FlutterError(code: "NOTIFICATION_PERMISSION",
                                   message: error.localizedDescription, details: nil))
             } else {
+              // Permission alone does not issue an APNs device token.
+              // Register with APNs so Firebase Messaging can map it to an FCM token.
+              if granted {
+                UIApplication.shared.registerForRemoteNotifications()
+              }
               result(granted)
             }
           }
