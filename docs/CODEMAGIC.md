@@ -10,6 +10,6 @@ The signed workflow is manual and does not automatically submit for review. Down
 
 The simulator workflow has a push trigger. It runs automatically only if the Codemagic repository webhook is connected and enabled. Otherwise choose Start new build → this branch → ios-simulator. A Git push alone does not prove a build started.
 
-Current source version: 1.2.1+7. Before reusing an already uploaded build number, increment pubspec.yaml.
+Current source version: 1.4.0+17. Before reusing an already uploaded build number, increment pubspec.yaml.
 
 Outstanding: complete and verify OneSignal iOS Notification Service Extension setup, Apple signing, real-device notification delivery, and store privacy declarations. A successful simulator build alone does not certify release readiness.

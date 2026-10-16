@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 
-/// Unified VADESİ design system: deep ink, calm teal and high-contrast surfaces.
+/// VADESİ's shared palette and spacing language for compact iPhone screens.
 class AppTheme {
-  static const ink = Color(0xFF102C3C);
-  static const navy = Color(0xFF14384B);
-  static const teal = Color(0xFF0F8C87);
-  static const darkBg = Color(0xFF091923);
-  static const darkCard = Color(0xFF142B38);
+  static const ink = Color(0xFF17313D);
+  static const navy = Color(0xFF173B47);
+  static const teal = Color(0xFF087F77);
+  static const darkBg = Color(0xFF0C1C23);
+  static const darkCard = Color(0xFF172D36);
 
   static ThemeData light() => _theme(
-    Brightness.light, const Color(0xFF116D70),
-    const Color(0xFFF4F7F8), Colors.white,
+    Brightness.light, const Color(0xFF08776F),
+    const Color(0xFFF3F7F5), Colors.white,
   );
 
   static ThemeData dark() => _theme(
-    Brightness.dark, const Color(0xFF7FD5CB),
+    Brightness.dark, const Color(0xFF8BE0D1),
     darkBg, darkCard,
   );
 
@@ -25,27 +25,29 @@ class AppTheme {
       seedColor: teal,
       brightness: mode,
       primary: primary,
-      secondary: dark ? const Color(0xFF8FB6DC) : const Color(0xFF426A91),
-      tertiary: dark ? const Color(0xFFC7C08A) : const Color(0xFF8C7246),
+      secondary: dark ? const Color(0xFFA9CCE5) : const Color(0xFF426D83),
+      tertiary: dark ? const Color(0xFFF4CA8A) : const Color(0xFF9C6832),
       surface: card,
       error: dark ? const Color(0xFFFFB4AB) : const Color(0xFFAC4242),
     );
-    final border = dark ? const Color(0xFF294553) : const Color(0xFFE1E9EC);
-    final titleColor = dark ? const Color(0xFFF1F7F8) : ink;
-    final secondaryText = dark ? const Color(0xFFB0C6D0) : const Color(0xFF576F7C);
+    final border = dark ? const Color(0xFF2A4550) : const Color(0xFFDFE9E6);
+    final titleColor = dark ? const Color(0xFFF2F8F6) : ink;
+    final secondaryText = dark ? const Color(0xFFB7CBCB) : const Color(0xFF60777C);
     final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(22), side: BorderSide(color: border));
+      borderRadius: BorderRadius.circular(24), side: BorderSide(color: border));
     return ThemeData(
       useMaterial3: true,
       brightness: mode,
       colorScheme: scheme,
       scaffoldBackgroundColor: background,
       splashFactory: InkRipple.splashFactory,
+      visualDensity: VisualDensity.standard,
       appBarTheme: AppBarTheme(
         backgroundColor: background, foregroundColor: titleColor,
         elevation: 0, centerTitle: false, surfaceTintColor: Colors.transparent,
         titleTextStyle: TextStyle(
-          fontSize: 19, fontWeight: FontWeight.w800, color: titleColor,
+        fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -.3,
+        color: titleColor,
         ),
       ),
       cardTheme: CardThemeData(
@@ -55,7 +57,7 @@ class AppTheme {
       dividerTheme: DividerThemeData(color: border, thickness: 1),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: dark ? const Color(0xFF1E3947) : const Color(0xFFFAFCFC),
+        fillColor: dark ? const Color(0xFF203943) : const Color(0xFFFBFDFC),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: border)),
@@ -93,8 +95,8 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: card,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: primary.withValues(alpha: dark ? .23 : .12),
-        height: 76,
+        indicatorColor: primary.withValues(alpha: dark ? .24 : .11),
+        height: 72,
         labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
           color: states.contains(WidgetState.selected) ? primary : secondaryText,
           fontSize: 11, fontWeight: states.contains(WidgetState.selected)
@@ -124,8 +126,8 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
       textTheme: TextTheme(
-        displaySmall: TextStyle(color: titleColor, fontSize: 37, fontWeight: FontWeight.w900, letterSpacing: -1.5),
-        headlineMedium: TextStyle(color: titleColor, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -.8),
+        displaySmall: TextStyle(color: titleColor, fontSize: 38, fontWeight: FontWeight.w900, letterSpacing: -1.8),
+        headlineMedium: TextStyle(color: titleColor, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -1),
         headlineSmall: TextStyle(color: titleColor, fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -.5),
         titleLarge: TextStyle(color: titleColor, fontSize: 19, fontWeight: FontWeight.w800),
         titleMedium: TextStyle(color: titleColor, fontSize: 15, fontWeight: FontWeight.w700),

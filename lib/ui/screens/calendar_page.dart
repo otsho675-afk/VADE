@@ -56,6 +56,14 @@ class _CalendarPageState extends State<CalendarPage> {
         body: Center(child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 760),
           child: ListView(padding: const EdgeInsets.all(18), children: [
+            Text('VADE TAKVİMİ', style: TextStyle(color: Theme.of(context).colorScheme.primary,
+              fontSize: 11, letterSpacing: 1.5, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 7),
+            Text('Vadelerin bir bakışta', style: Theme.of(context).textTheme.headlineMedium),
+            const SizedBox(height: 5),
+            Text('Gün seçerek bekleyen ödemeleri ve tahsilatları gör.',
+              style: Theme.of(context).textTheme.bodyMedium),
+            const SizedBox(height: 19),
             OutlinedButton.icon(
               onPressed: () async {
                 final date = await showWheelDatePicker(context: context, initialDate: _selected,
@@ -64,17 +72,18 @@ class _CalendarPageState extends State<CalendarPage> {
               },
               icon: const Icon(Icons.unfold_more_rounded), label: const Text('Kaydırarak tarih seç')),
             const SizedBox(height: 12),
-            Row(children: [
-              IconButton(tooltip: 'Önceki ay', onPressed: () => _jumpMonth(-1),
-                icon: const Icon(Icons.chevron_left_rounded)),
-              Expanded(child: Center(child: Text('${_month.month} / ${_month.year}',
-                style: Theme.of(context).textTheme.titleMedium))),
-              TextButton(onPressed: _jumpToday, child: const Text('Bugün')),
-              IconButton(tooltip: 'Sonraki ay', onPressed: () => _jumpMonth(1),
-                icon: const Icon(Icons.chevron_right_rounded)),
-            ]),
-            const SizedBox(height: 8),
-            Card(child: CalendarDatePicker(
+            Card(child: Column(children: [
+              Padding(padding: const EdgeInsets.fromLTRB(9, 8, 9, 1), child: Row(children: [
+                IconButton(tooltip: 'Önceki ay', onPressed: () => _jumpMonth(-1),
+                  icon: const Icon(Icons.chevron_left_rounded)),
+                Expanded(child: Center(child: Text('${_month.month} / ${_month.year}',
+                  style: Theme.of(context).textTheme.titleMedium))),
+                TextButton(onPressed: _jumpToday, child: const Text('Bugün')),
+                IconButton(tooltip: 'Sonraki ay', onPressed: () => _jumpMonth(1),
+                  icon: const Icon(Icons.chevron_right_rounded)),
+              ])),
+              const Divider(height: 1),
+              CalendarDatePicker(
               key: ValueKey(_selected),
               initialDate: _selected, firstDate: DateTime(2020), lastDate: DateTime(2120, 12, 31),
               onDateChanged: (value) => setState(() { _selected = value; _month = DateTime(value.year, value.month); }),
@@ -85,27 +94,36 @@ class _CalendarPageState extends State<CalendarPage> {
                   _selected = DateTime(value.year, value.month, _selected.day.clamp(1, lastDay));
                 }
               }),
-            )),
-            const SizedBox(height: 14),
-            Text('${_month.month} / ${_month.year} · Bekleyen ödemeler',
-              style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Card(child: Padding(padding: const EdgeInsets.all(16), child: Wrap(
-              spacing: 24, runSpacing: 10, children: [
-                Text('Aylık borç: ${formatMoney(outgoing)}'),
-                Text('Aylık alacak: ${formatMoney(incoming)}'),
-                Text('Geciken kayıtlar: $overdue'),
-              ],
-            ))),
+              ),
+            ])),
+            const SizedBox(height: 19),
+            SectionTitle('${_month.month} / ${_month.year} · Bekleyen ödemeler'),
+            Card(child: Padding(padding: const EdgeInsets.all(17), child: Column(children: [
+              Row(children: [
+                Expanded(child: _CalendarMetric(label: 'Aylık borç', value: formatMoney(outgoing),
+                  icon: Icons.north_east_rounded)),
+                const SizedBox(width: 12),
+                Expanded(child: _CalendarMetric(label: 'Aylık alacak', value: formatMoney(incoming),
+                  icon: Icons.south_west_rounded)),
+              ]),
+              const Divider(height: 25),
+              Row(children: [
+                Icon(Icons.schedule_rounded, size: 18, color: Theme.of(context).colorScheme.error),
+                const SizedBox(width: 7),
+                Expanded(child: Text('Geciken kayıtlar: $overdue',
+                  style: Theme.of(context).textTheme.titleMedium)),
+              ]),
+            ]))),
             const SizedBox(height: 22),
             SectionTitle(formatDate(_selected)),
             const SizedBox(height: 7),
-            Card(child: Padding(padding: const EdgeInsets.all(14), child: Wrap(
-              spacing: 16, runSpacing: 10, children: [
-                Text('Günlük borç: ${formatMoney(dayOutgoing)}'),
-                Text('Günlük alacak: ${formatMoney(dayIncoming)}'),
-              ],
-            ))),
+            Card(child: Padding(padding: const EdgeInsets.all(17), child: Row(children: [
+              Expanded(child: _CalendarMetric(label: 'Günlük borç', value: formatMoney(dayOutgoing),
+                icon: Icons.north_east_rounded)),
+              const SizedBox(width: 12),
+              Expanded(child: _CalendarMetric(label: 'Günlük alacak', value: formatMoney(dayIncoming),
+                icon: Icons.south_west_rounded)),
+            ]))),
             const SizedBox(height: 12),
             if (daily.isEmpty) const EmptyView(title: 'Bu gün için kayıt yok',
               message: 'Başka bir tarih seçebilirsiniz.', icon: Icons.event_available_outlined),
@@ -127,4 +145,25 @@ class _CalendarPageState extends State<CalendarPage> {
       );
     },
   );
+}
+
+class _CalendarMetric extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  const _CalendarMetric({required this.label, required this.value, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Icon(icon, size: 18, color: scheme.primary),
+      const SizedBox(height: 7),
+      Text(label, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11,
+        fontWeight: FontWeight.w700)),
+      const SizedBox(height: 4),
+      FittedBox(alignment: Alignment.centerLeft, fit: BoxFit.scaleDown,
+        child: Text(value, style: Theme.of(context).textTheme.titleMedium)),
+    ]);
+  }
 }

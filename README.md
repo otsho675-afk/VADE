@@ -2,6 +2,11 @@
 
 Flutter ile Android, iOS ve web için kişisel ödeme takip uygulaması.
 
+## Güncel iOS arayüzü
+
+1.4.0 (17) sürümündeki tasarım ve kopyalama yenilikleri için
+[iOS sürüm notlarına](docs/YENILIKLER_1_4_IOS.md) bakın.
+
 ## 1.1 geliştirmeleri
 
 - Logo bölümündeki geçersiz const ifadeleri düzeltildi.

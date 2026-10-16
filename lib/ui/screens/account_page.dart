@@ -107,6 +107,14 @@ class _AccountPageState extends State<AccountPage> {
       return Scaffold(appBar: AppBar(title: Text(CloudConfig.premiumEnabled ? 'Hesabım ve Premium' : 'Hesabım')),
         body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 680),
           child: ListView(padding: const EdgeInsets.all(20), children: [
+            Text('HESAP', style: TextStyle(color: Theme.of(context).colorScheme.primary,
+              fontSize: 11, letterSpacing: 1.5, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 7),
+            Text('Hesabını yönet', style: Theme.of(context).textTheme.headlineMedium),
+            const SizedBox(height: 6),
+            Text('Üyelik, yedek ve duyuru tercihleri bir arada.',
+              style: Theme.of(context).textTheme.bodyMedium),
+            const SizedBox(height: 19),
             if (!cloud.ready) const Card(child: Padding(padding: EdgeInsets.all(16),
               child: Text('Bulut hizmeti henüz etkinleştirilmedi. Ödemelerinizi cihazda tutmaya ve dosya yedeği almaya devam edebilirsiniz.'))),
             if (cloud.error != null) Text(cloud.error!),
@@ -141,10 +149,10 @@ class _AccountPageState extends State<AccountPage> {
                   ]),
                 ]))),
 
-              ListTile(contentPadding: EdgeInsets.zero,
+              Card(child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 17, vertical: 7),
                 leading: const Icon(Icons.account_circle),
                 title: Text(cloud.user!.email ?? 'Hesabım'),
-                subtitle: Text(cloud.premium ? 'Premium aktif' : 'Ücretsiz üyelik')),
+                subtitle: Text(cloud.premium ? 'Premium aktif' : 'Ücretsiz üyelik'))),
               if (CloudConfig.premiumEnabled) ...[
               const Text('Premium: cihazlar arasında isteğe bağlı bulut yedekleme. '
                 'Yerel ödeme takibi ve dosya yedekleme ücretsizdir.'),
@@ -182,13 +190,14 @@ class _AccountPageState extends State<AccountPage> {
               TextButton(onPressed: _busy ? null : () => _run(_delete), child: const Text('Hesabımı sil')),
             ],
             const Divider(height: 32),
-            SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Duyuru bildirimleri'),
+            Card(child: SwitchListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 17, vertical: 7),
+              title: const Text('Duyuru bildirimleri'),
               subtitle: const Text('İzin verirseniz OneSignal üzerinden uygulama duyuruları alırsınız. Ödeme hatırlatmaları ayrı yönetilir.'),
               value: store.remotePush.enabled,
               onChanged: _busy || !store.remotePush.available ? null : (value) => _run(() async {
                 final accepted = await store.remotePush.setEnabled(value);
                 if (!accepted && context.mounted) showError(context, 'Bildirim izni verilmedi.');
-              })),
+              }))),
             Wrap(spacing: 12, children: [
               TextButton(onPressed: CloudConfig.privacyUrl.isEmpty ? null :
                 () => _run(() => _link(CloudConfig.privacyUrl)), child: const Text('Gizlilik politikası')),

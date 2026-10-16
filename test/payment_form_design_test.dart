@@ -46,7 +46,9 @@ void main() {
 
     await tester.tap(find.text('Alacağım'));
     await tester.pumpAndSettle();
-    expect(find.text('Kimden alacağım?'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Kişi / kurum adı (isteğe bağlı)'), 250,
+      scrollable: find.byType(Scrollable).first);
+    expect(find.text('Kişi / kurum adı (isteğe bağlı)'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     store.dispose();

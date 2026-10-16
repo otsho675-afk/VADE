@@ -297,7 +297,8 @@ class _HomeShellState extends State<HomeShell> {
 
   Widget _pageLayout(Widget child) => LayoutBuilder(builder: (context, constraints) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(18, 21, 18, 42),
+      padding: EdgeInsets.fromLTRB(constraints.maxWidth < 420 ? 16 : 24,
+        23, constraints.maxWidth < 420 ? 16 : 24, 42),
       child: Align(alignment: Alignment.topCenter, child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 1120), child: child)),
     );
@@ -306,6 +307,9 @@ class _HomeShellState extends State<HomeShell> {
   Widget _dashboard() => _pageLayout(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('GENEL BAKIŞ', style: TextStyle(color: Theme.of(context).colorScheme.primary,
+          fontSize: 11, letterSpacing: 1.5, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 7),
         Text('Finansın kontrol altında', style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 6),
         Text('Taksitlerin, faturaların ve alacakların tek ekranda.',
@@ -324,26 +328,29 @@ class _HomeShellState extends State<HomeShell> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
-          colors: [Color(0xFF112E43), Color(0xFF126565), Color(0xFF1B777B)]),
+          colors: [Color(0xFF173440), Color(0xFF0B716B)]),
         borderRadius: BorderRadius.circular(26),
-        boxShadow: [BoxShadow(color: const Color(0xFF112E43).withValues(alpha: .19),
-          blurRadius: 30, offset: const Offset(0, 13))],
+        boxShadow: [BoxShadow(color: const Color(0xFF0B716B).withValues(alpha: .16),
+          blurRadius: 26, offset: const Offset(0, 10))],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Expanded(child: Text('TOPLAM AÇIK BORÇ',
-            style: TextStyle(color: Color(0xFFDCEEF8), fontSize: 11, letterSpacing: 1.4, fontWeight: FontWeight.w600))),
-          const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFFDCEEF8)),
+          const Expanded(child: Text('BU AY SONUNA KADAR',
+            style: TextStyle(color: Color(0xFFD0F3EA), fontSize: 11, letterSpacing: 1.4, fontWeight: FontWeight.w800))),
+          const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFFD0F3EA)),
         ]),
         const SizedBox(height: 14),
         FittedBox(fit: BoxFit.scaleDown, child: Text(formatCompactMoney(store.monthOutgoing),
           style: const TextStyle(color: Colors.white, fontSize: 39, fontWeight: FontWeight.w900, letterSpacing: -1.2))),
         const SizedBox(height: 8),
-        const Text('Vadesi gelen ve gecikmiş borçların toplamı',
-          style: TextStyle(color: Color(0xFFDCEEF8), fontSize: 12)),
+        const Text('Ödenmemiş borçlar · gecikmiş vadeler dahil',
+          style: TextStyle(color: Color(0xFFD5F3EC), fontSize: 12)),
         const SizedBox(height: 18),
         const Divider(color: Color(0x557BC3C5), height: 1),
-        const SizedBox(height: 18),
+        const SizedBox(height: 14),
+        Text('${store.unpaidItems.length} açık ödeme  ·  ${store.lateCount} geciken kayıt',
+          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 16),
         Wrap(spacing: 10, runSpacing: 10, children: [
           FilledButton.icon(style: FilledButton.styleFrom(backgroundColor: const Color(0xFFE7FCF8),
               foregroundColor: const Color(0xFF123C49)),
@@ -442,11 +449,27 @@ class _HomeShellState extends State<HomeShell> {
   ]));
 
   Widget _paymentsPage() => _pageLayout(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text('KAYITLAR', style: TextStyle(color: Theme.of(context).colorScheme.primary,
+      fontSize: 11, letterSpacing: 1.5, fontWeight: FontWeight.w800)),
+    const SizedBox(height: 7),
     Text('Ödeme listesi', style: Theme.of(context).textTheme.headlineMedium),
     const SizedBox(height: 4),
     Text('Borç, taksit, fatura ve alacak kayıtlarını görüntüleyin.',
       style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
     const SizedBox(height: 17),
+    Card(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 13),
+      child: Row(children: [
+        Icon(Icons.pending_actions_rounded, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 11),
+        Expanded(child: Text('${store.unpaidItems.length} açık kayıt',
+          style: Theme.of(context).textTheme.titleMedium)),
+        Text(formatCompactMoney(store.unpaidItems.where((item) =>
+          item.plan.direction == PaymentDirection.outgoing).fold<int>(0,
+          (sum, item) => sum + item.amountCents)),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: Theme.of(context).colorScheme.primary)),
+      ]))),
+    const SizedBox(height: 13),
     TextField(
       controller: _searchController,
       textInputAction: TextInputAction.search,
@@ -569,6 +592,9 @@ class _HomeShellState extends State<HomeShell> {
     }
     final sortedCategories = categories.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
     return _pageLayout(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('RAPORLAR', style: TextStyle(color: Theme.of(context).colorScheme.primary,
+        fontSize: 11, letterSpacing: 1.5, fontWeight: FontWeight.w800)),
+      const SizedBox(height: 7),
       Text('Finansal özet', style: Theme.of(context).textTheme.headlineMedium),
       const SizedBox(height: 5),
       Text('Kaydettiğiniz işlemlere dayalı kişisel takip raporu.',
@@ -663,6 +689,9 @@ class _HomeShellState extends State<HomeShell> {
   Widget _settingsPage() => _pageLayout(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Row(children: [
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('TERCİHLER', style: TextStyle(color: Theme.of(context).colorScheme.primary,
+          fontSize: 11, letterSpacing: 1.5, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 7),
         Text('Ayarlar', style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 5),
         Text('Her şey sana göre, her şey tek yerde.',
@@ -859,7 +888,7 @@ class _HomeShellState extends State<HomeShell> {
           subtitle: Text('IBAN ve ödeme bilgileri cihazda tutulur; bu sürümde veritabanı şifreli değildir. Telefon ekran kilidini kullanın.')),
       ]))),
     const SizedBox(height: 21),
-    Center(child: Text('VADESİ · 1.3.0',
+    Center(child: Text('VADESİ · 1.4.0',
       style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant))),
   ]));
 }

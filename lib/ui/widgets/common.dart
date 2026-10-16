@@ -24,28 +24,26 @@ class SummaryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Card(child: Padding(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(17),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Container(width: 40, height: 40, alignment: Alignment.center,
+          Container(width: 42, height: 42, alignment: Alignment.center,
             decoration: BoxDecoration(
               color: scheme.primary.withValues(alpha: .10),
-              borderRadius: BorderRadius.circular(13)),
+              borderRadius: BorderRadius.circular(14)),
             child: Icon(icon, color: scheme.primary, size: 21)),
-          const Spacer(),
-          const Icon(Icons.north_east_rounded, size: 15, color: Color(0xFF839AA4)),
         ]),
-        const SizedBox(height: 17),
+        const SizedBox(height: 16),
         Text(title, maxLines: 2, overflow: TextOverflow.ellipsis,
           style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant,
-            fontWeight: FontWeight.w600)),
-        const SizedBox(height: 5),
+            fontWeight: FontWeight.w700)),
+        const SizedBox(height: 6),
         FittedBox(alignment: Alignment.centerLeft, fit: BoxFit.scaleDown,
           child: Text(value, style: Theme.of(context).textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.w900, letterSpacing: -.5))),
-        const SizedBox(height: 7),
+        const SizedBox(height: 6),
         Text(footer, maxLines: 2, overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11)),
+          style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11, height: 1.3)),
       ]),
     ));
   }
@@ -124,7 +122,7 @@ class PaymentRowCard extends StatelessWidget {
             maxLines: 1, overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: amountColor, fontWeight: FontWeight.w900, letterSpacing: -.5));
-          final action = OutlinedButton.icon(
+          final action = FilledButton.tonalIcon(
             onPressed: onPaid, icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
             label: Text(incoming ? 'Tahsil edildi' : 'Ödendi'),
           );

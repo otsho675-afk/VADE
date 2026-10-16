@@ -72,7 +72,7 @@ class _WelcomeGateState extends State<WelcomeGate> {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF153C51), Color(0xFF116C69)]),
+                    colors: [Color(0xFF173B47), Color(0xFF0D766F)]),
                   borderRadius: BorderRadius.circular(20)),
                 child: const BrandMark(size: 47)),
               const SizedBox(width: 14),
@@ -99,7 +99,7 @@ class _WelcomeGateState extends State<WelcomeGate> {
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft, end: Alignment.bottomRight,
-                  colors: [Color(0xFF102C43), Color(0xFF166A6C), Color(0xFF22808A)]),
+                  colors: [Color(0xFF173440), Color(0xFF0B716B)]),
                 borderRadius: BorderRadius.circular(28)),
               padding: const EdgeInsets.all(25),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -123,6 +123,8 @@ class _WelcomeGateState extends State<WelcomeGate> {
             _feature(Icons.receipt_long_outlined, 'Taksit ve fatura takibi'),
             const SizedBox(height: 12),
             _feature(Icons.notifications_active_outlined, 'Tek seferde bildirim izni'),
+            const SizedBox(height: 12),
+            _feature(Icons.copy_all_rounded, 'İsim ve IBAN bilgilerini kolayca kopyala'),
             const SizedBox(height: 12),
             _feature(Icons.shield_outlined, 'Kayıtlar cihazında, kontrol sende'),
           ]),

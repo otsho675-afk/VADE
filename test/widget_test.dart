@@ -9,7 +9,7 @@ import 'package:vadesi/ui/screens/home_shell.dart';
 import 'package:vadesi/ui/screens/calendar_page.dart';
 
 void main() {
-  for (final width in [390.0, 1440.0]) {
+  for (final width in [320.0, 390.0, 1440.0]) {
     testWidgets('Home and settings render at width $width', (tester) async {
       tester.view.physicalSize = Size(width, 1000);
       tester.view.devicePixelRatio = 1;
@@ -103,7 +103,7 @@ void main() {
     await tester.pumpAndSettle();
     final today = DateTime.now();
     expect(find.text('${today.month} / ${today.year}'), findsOneWidget);
-    expect(find.textContaining('Aylık borç:'), findsOneWidget);
+    expect(find.text('Aylık borç'), findsOneWidget);
     await tester.tap(find.byTooltip('Sonraki ay').first);
     await tester.pumpAndSettle();
     final next = DateTime(today.year, today.month + 1);

@@ -12,6 +12,8 @@ void main() {
     expect(find.text('Abone ol'), findsNothing);
     expect(find.text('Giriş yap'), findsOneWidget);
     expect(find.text('Üye ol'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Duyuru bildirimleri'), 200,
+      scrollable: find.byType(Scrollable).first);
     final toggle = tester.widget<SwitchListTile>(find.byType(SwitchListTile));
     expect(toggle.onChanged, isNotNull); // OneSignal announcements do not require a Firebase login.
     await tester.pumpWidget(const SizedBox.shrink());

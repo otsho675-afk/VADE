@@ -166,6 +166,24 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
         child: Center(child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 780),
           child: ListView(keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag, padding: const EdgeInsets.fromLTRB(16, 16, 16, 26), children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [Color(0xFF163B47), Color(0xFF0D766F)]),
+                borderRadius: BorderRadius.circular(22)),
+              child: Row(children: [
+                const Icon(Icons.add_card_rounded, color: Colors.white, size: 29),
+                const SizedBox(width: 14),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(editing ? 'Planını güncelle' : 'Yeni bir plan oluştur',
+                    style: theme.textTheme.titleLarge?.copyWith(color: Colors.white)),
+                  const SizedBox(height: 4),
+                  const Text('Tutarı ve vadeyi ekle; ödemelerini tek yerden takip et.',
+                    style: TextStyle(color: Color(0xFFD4F3EB), fontSize: 12, height: 1.4)),
+                ])),
+              ]),
+            ),
+            const SizedBox(height: 22),
             Text('Ödeme türü', style: theme.textTheme.titleMedium?.copyWith(
               fontSize: 16, fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
@@ -278,15 +296,6 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
                   validator: (v) => (v?.trim().isEmpty ?? true) ? 'Ödeme adı girin.' : null,
                 ),
                 const SizedBox(height: 14),
-                _formLabel(context, _direction == PaymentDirection.outgoing
-                  ? 'Kime / hangi kuruma?' : 'Kimden alacağım?'),
-                TextFormField(controller: _party, maxLength: 200,
-                  textInputAction: TextInputAction.next,
-                  textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.person_outline_rounded),
-                    hintText: 'Örn. Ahmet Yılmaz veya kurum adı')),
-                const SizedBox(height: 14),
                 _formLabel(context, 'Tutar (TL) *'),
                 TextFormField(controller: _amount,
                   textInputAction: TextInputAction.next,
@@ -354,8 +363,18 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
             Card(child: Padding(padding: const EdgeInsets.all(19), child: Column(
               crossAxisAlignment: CrossAxisAlignment.start, children: [
                 _sectionHeading(context, Icons.account_balance_outlined,
-                  'Havale bilgileri ve not', 'İsteğe bağlı ek bilgiler.'),
+                  'Kişi ve havale bilgileri', 'Ödeme detayında tek dokunuşla kopyalayın.'),
                 const SizedBox(height: 22),
+                _formLabel(context, _direction == PaymentDirection.outgoing
+                  ? 'Alıcı / kurum adı (isteğe bağlı)'
+                  : 'Kişi / kurum adı (isteğe bağlı)'),
+                TextFormField(controller: _party, maxLength: 200,
+                  textInputAction: TextInputAction.next,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.person_outline_rounded),
+                    hintText: 'Örn. Ahmet Yılmaz veya kurum adı')),
+                const SizedBox(height: 14),
                 _formLabel(context, 'Alıcı IBAN (isteğe bağlı)'),
                 TextFormField(
                   controller: _iban,
@@ -369,6 +388,8 @@ class _PaymentFormPageState extends State<PaymentFormPage> {
                     hintText: 'TR00 0000 0000 0000 0000 0000 00'),
                   validator: (v) => isValidIban(v ?? '') ? null : 'Geçerli bir Türkiye IBAN bilgisi girin.',
                 ),
+                const SizedBox(height: 10),
+                _formHint(context, 'İsim ve IBAN ödeme detayında ayrı ayrı veya birlikte kopyalanabilir.'),
                 const SizedBox(height: 14),
                 _formLabel(context, 'Açıklama (isteğe bağlı)'),
                 TextFormField(controller: _notes,

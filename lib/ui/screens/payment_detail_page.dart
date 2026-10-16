@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../models/payment.dart';
 import '../../state/app_store.dart';
 import '../widgets/common.dart';
+import '../widgets/transfer_details_card.dart';
 import '../widgets/wheel_date_picker.dart';
 import 'payment_form_page.dart';
 
@@ -95,26 +95,45 @@ class PaymentDetailPage extends StatelessWidget {
           body: Center(child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 850),
             child: ListView(padding: const EdgeInsets.fromLTRB(18, 15, 18, 30), children: [
-              Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: .09), borderRadius: BorderRadius.circular(14)),
-                      child: Icon(plan.kind == PaymentKind.invoice ? plan.category.icon : plan.kind.icon,
-                        color: Theme.of(context).colorScheme.primary, size: 26)),
-                    const SizedBox(width: 12),
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(plan.title, style: Theme.of(context).textTheme.headlineSmall),
-                      const SizedBox(height: 5),
-                      Text('${plan.kind.label} · ${plan.direction.label}',
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
-                    ])),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft, end: Alignment.bottomRight,
+                    colors: [Color(0xFF163340), Color(0xFF0D766F)]),
+                  borderRadius: BorderRadius.circular(25)),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    const Expanded(child: Text('ÖDEME PLANI', style: TextStyle(
+                      color: Color(0xFFB9E9DE), fontSize: 11,
+                      letterSpacing: 1.4, fontWeight: FontWeight.w800))),
+                    Icon(plan.kind == PaymentKind.invoice ? plan.category.icon : plan.kind.icon,
+                      color: Colors.white, size: 25),
                   ]),
-                  const SizedBox(height: 18),
-                  const Divider(),
-                  const SizedBox(height: 10),
-                  _detailLine(context, 'Tutar', formatMoney(plan.amountCents)),
-                  if (plan.party.isNotEmpty) _detailLine(context, 'Kişi / kurum', plan.party),
+                  const SizedBox(height: 15),
+                  Text(plan.title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: Colors.white, height: 1.17)),
+                  const SizedBox(height: 7),
+                  Text('${plan.kind.label} · ${plan.direction.label}',
+                    style: const TextStyle(color: Color(0xFFD4F3EB), fontSize: 13)),
+                  const SizedBox(height: 20),
+                  const Divider(color: Color(0x6686C7BE), height: 1),
+                  const SizedBox(height: 16),
+                  const Text('PLAN TUTARI', style: TextStyle(color: Color(0xFFB9E9DE),
+                    fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+                  const SizedBox(height: 5),
+                  FittedBox(alignment: Alignment.centerLeft, fit: BoxFit.scaleDown,
+                    child: Text(formatMoney(plan.amountCents), style: const TextStyle(
+                      color: Colors.white, fontSize: 31, fontWeight: FontWeight.w900,
+                      letterSpacing: -1))),
+                ]),
+              ),
+              const SizedBox(height: 13),
+              Card(child: Padding(padding: const EdgeInsets.all(19), child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Plan özeti', style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 17),
                   _detailLine(context, 'İlk vade', formatDate(plan.startDate)),
                   if (plan.kind == PaymentKind.installment)
                     _detailLine(context, 'Taksit sayısı', '${paid.length} / ${plan.count} ödendi'),
@@ -123,31 +142,22 @@ class PaymentDetailPage extends StatelessWidget {
                   _detailLine(context, 'Ödenen toplam', formatMoney(totalPaid)),
                   if (plan.isFinite)
                     _detailLine(context, 'Kalan tutar', formatMoney(remaining.fold(0, (sum, e) => sum + e.amountCents))),
-                  if (plan.iban.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text('Kayıtlı IBAN', style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 8),
-                    DecoratedBox(decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: .05),
-                      borderRadius: BorderRadius.circular(12)),
-                      child: Padding(padding: const EdgeInsets.all(12), child: Row(children: [
-                        Expanded(child: SelectableText(plan.iban, style: const TextStyle(fontWeight: FontWeight.w600))),
-                        IconButton(tooltip: 'IBAN kopyala', icon: const Icon(Icons.copy_outlined), onPressed: () {
-                          Clipboard.setData(ClipboardData(text: plan.iban));
-                          showSuccess(context, 'IBAN kopyalandı.');
-                        }),
-                      ])),
-                    ),
-                  ],
-                  if (plan.note.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Text('Not', style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 5),
-                    Text(plan.note),
-                  ],
                 ],
               ))),
-              const SizedBox(height: 23),
+              if (plan.party.isNotEmpty || plan.iban.isNotEmpty) ...[
+                const SizedBox(height: 13),
+                TransferDetailsCard(party: plan.party, iban: plan.iban),
+              ],
+              if (plan.note.isNotEmpty) ...[
+                const SizedBox(height: 13),
+                Card(child: Padding(padding: const EdgeInsets.all(19),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Not', style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 9),
+                    Text(plan.note),
+                  ]))),
+              ],
+              const SizedBox(height: 25),
               const SectionTitle('Ödeme takvimi'),
               if (remaining.isEmpty)
                 const Card(child: Padding(padding: EdgeInsets.all(22), child: Text('Bu plandaki tüm ödemeler tamamlandı.'))),
